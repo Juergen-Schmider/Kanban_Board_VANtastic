@@ -1007,44 +1007,87 @@ function openPdf(taskId, idx) {
   const t = tasks.find(x => x.id === taskId);
   if (!t || !t.pdfs[idx]) return;
   try {
-    const blob = dataUrlToBlob(t.pdfs[idx].dataUrl);
-    const url  = URL.createObjectURL(blob);
-    const win  = window.open(url, '_blank');
-    if (!win) { alert('Popup blockiert – bitte Popup-Blocker deaktivieren.'); }
-    setTimeout(() => URL.revokeObjectURL(url), 15000);
+    const pdf = t.pdfs[idx];
+    if (isIOS()) {
+      // iOS: open the data URL directly in a new tab — Safari can render it
+      const win = window.open(pdf.dataUrl, '_blank');
+      if (!win) alert('Popup blockiert – bitte Popup-Blocker deaktivieren.');
+    } else {
+      const blob = dataUrlToBlob(pdf.dataUrl);
+      const url  = URL.createObjectURL(blob);
+      const win  = window.open(url, '_blank');
+      if (!win) alert('Popup blockiert – bitte Popup-Blocker deaktivieren.');
+      setTimeout(() => URL.revokeObjectURL(url), 15000);
+    }
   } catch(e) {
     console.error('PDF öffnen fehlgeschlagen:', e);
     alert('PDF konnte nicht geöffnet werden: ' + e.message);
   }
 }
 
+function isIOS() {
+  // iPad on iOS 13+ reports as "MacIntel" but has touch — detect both ways
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
 function togglePdfViewer(uid, taskId, idx) {
   const viewer = document.getElementById(uid);
   const arrow  = document.getElementById(uid + '-arrow');
   if (!viewer) return;
-  if (viewer.style.display === 'none') {
-    // build object element with blob URL for reliable rendering
-    const t = tasks.find(x => x.id === taskId);
-    if (!t || !t.pdfs[idx]) return;
+  const t = tasks.find(x => x.id === taskId);
+  if (!t || !t.pdfs[idx]) return;
+
+  if (viewer.style.display === 'none' || !viewer.style.display) {
     try {
-      const blob = dataUrlToBlob(t.pdfs[idx].dataUrl);
+      const pdf  = t.pdfs[idx];
+      const blob = dataUrlToBlob(pdf.dataUrl);
       const url  = URL.createObjectURL(blob);
-      viewer.innerHTML = `<object data="${url}" type="application/pdf">
-        <div style="padding:12px;font-size:12px;color:var(--text-muted);text-align:center;">
-          PDF kann nicht direkt angezeigt werden.
-          <a href="${url}" download="${t.pdfs[idx].name}"
-             style="color:var(--accent);display:block;margin-top:6px;">⬇ Herunterladen</a>
-        </div>
-      </object>`;
+
+      if (isIOS()) {
+        // iOS Safari: <object> doesn't render PDFs reliably and blob URLs
+        // don't work in iframes. Show a button to open in new tab instead.
+        viewer.innerHTML = `
+          <div style="padding:14px;background:var(--surface3);text-align:center;">
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
+              📄 ${escHtml(pdf.name)}
+            </div>
+            <a href="${url}" target="_blank" rel="noopener"
+               style="display:inline-block;background:var(--accent);color:#0f0e0c;padding:8px 16px;border-radius:6px;font-size:13px;font-weight:500;text-decoration:none;margin:4px;">
+              📂 In neuem Tab öffnen
+            </a>
+            <a href="${pdf.dataUrl}" download="${escHtml(pdf.name)}"
+               style="display:inline-block;background:var(--surface2);border:1px solid var(--border-hover);color:var(--text);padding:8px 16px;border-radius:6px;font-size:13px;text-decoration:none;margin:4px;">
+              ⬇ Herunterladen
+            </a>
+            <div style="font-size:10px;color:var(--text-dim);margin-top:8px;line-height:1.5;">
+              Tippe „In neuem Tab öffnen" um das PDF in der Dateien-App<br>oder im Safari-Viewer anzusehen.
+            </div>
+          </div>`;
+      } else {
+        // Desktop: use <object> for inline rendering
+        viewer.innerHTML = `<object data="${url}" type="application/pdf">
+          <div style="padding:12px;font-size:12px;color:var(--text-muted);text-align:center;">
+            PDF kann nicht direkt angezeigt werden.
+            <a href="${url}" target="_blank" rel="noopener"
+               style="color:var(--accent);display:block;margin-top:6px;">📂 In neuem Tab öffnen</a>
+            <a href="${pdf.dataUrl}" download="${escHtml(pdf.name)}"
+               style="color:var(--accent);display:block;margin-top:6px;">⬇ Herunterladen</a>
+          </div>
+        </object>`;
+      }
+
       viewer.style.display = 'block';
       if (arrow) arrow.textContent = '▲ Schließen';
     } catch(e) {
       alert('PDF konnte nicht geladen werden: ' + e.message);
     }
   } else {
-    // close & clean up blob URL to free memory
+    // Close & free blob URL
     const obj = viewer.querySelector('object');
-    if (obj && obj.data) URL.revokeObjectURL(obj.data);
+    if (obj && obj.data && obj.data.startsWith('blob:')) URL.revokeObjectURL(obj.data);
+    const link = viewer.querySelector('a[href^="blob:"]');
+    if (link) URL.revokeObjectURL(link.href);
     viewer.innerHTML = '';
     viewer.style.display = 'none';
     if (arrow) arrow.textContent = '▼ Öffnen';
