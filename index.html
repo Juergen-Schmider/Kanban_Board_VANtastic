@@ -1,10 +1,8 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
+<html lang="de"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VANtastic Kanban Board</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&amp;family=Fraunces:ital,wght@0,400;0,600;1,400&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
   :root {
@@ -254,28 +252,24 @@
     <span class="logo-sub" style="margin-left:2px;">Kanban Board</span>
   </div>
   <div class="header-stats">
-    <div class="header-stat"><span class="num" id="stat-total">0</span><span class="lbl">Gesamt</span></div>
-    <div class="header-stat"><span class="num" id="stat-done">0</span><span class="lbl">Erledigt</span></div>
-    <div class="header-stat"><span class="num" id="stat-progress">0</span><span class="lbl">In Arbeit</span></div>
-    <div class="header-stat"><span class="num" id="stat-urgent">0</span><span class="lbl">Dringend</span></div>
+    <div class="header-stat"><span class="num" id="stat-total">12</span><span class="lbl">Gesamt</span></div>
+    <div class="header-stat"><span class="num" id="stat-done">3</span><span class="lbl">Erledigt</span></div>
+    <div class="header-stat"><span class="num" id="stat-progress">2</span><span class="lbl">In Arbeit</span></div>
+    <div class="header-stat"><span class="num" id="stat-urgent">1</span><span class="lbl">Dringend</span></div>
   </div>
   <div class="header-actions">
     <div class="search-wrap">
-      <input type="text" class="search-input" id="global-search"
-             placeholder="🔍  Dashboard durchsuchen…"
-             oninput="onSearchInput(this.value)"
-             onkeydown="if(event.key==='Escape'){clearSearch();}"
-             autocomplete="off" spellcheck="false">
+      <input type="text" class="search-input" id="global-search" placeholder="🔍  Dashboard durchsuchen…" oninput="onSearchInput(this.value)" onkeydown="if(event.key==='Escape'){clearSearch();}" autocomplete="off" spellcheck="false">
       <button class="search-clear" id="search-clear-btn" onclick="clearSearch()" title="Suche löschen">✕</button>
     </div>
-    <button class="btn" onclick="openSyncModal()" title="Speichern & Sync">💾 Sync</button>
+    <button class="btn" onclick="openSyncModal()" title="Speichern &amp; Sync">💾 Sync</button>
     <button class="btn btn-primary" onclick="openAddModal()">+ Aufgabe</button>
   </div>
 </header>
 <div class="sync-bar" id="sync-bar">
-  <div class="sync-dot" id="sync-dot"></div>
-  <span class="sync-time" id="sync-time">Noch nicht gespeichert</span>
-  <span class="sync-size" id="sync-size"></span>
+  <div class="sync-dot saved" id="sync-dot"></div>
+  <span class="sync-time" id="sync-time">Gespeichert 13:20</span>
+  <span class="sync-size" id="sync-size">2 KB</span>
 </div>
 
 <!-- FILTER BAR -->
@@ -332,46 +326,173 @@
       <div class="kanban-col col-backlog">
         <div class="col-header">
           <div class="col-title"><span class="col-dot"></span>Backlog</div>
-          <span class="col-count" id="count-backlog">0</span>
+          <span class="col-count" id="count-backlog">3</span>
         </div>
-        <div class="col-cards" id="cards-backlog"
-             ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'backlog')"></div>
+        <div class="col-cards" id="cards-backlog" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'backlog')"><div class="task-card" draggable="true" data-id="1">
+    <div class="task-top">
+      <div class="task-title">Mobile Responsive Design</div>
+      <button class="task-menu" onclick="openCtx(event,1)">⋯</button>
+    </div>
+    <div class="task-desc">Alle Seiten für Mobilgeräte optimieren</div>
+    
+    <div class="task-meta">
+      <span class="priority-badge p-medium">Mittel</span>
+      
+      <span class="task-date">10.07.</span>
+    </div></div><div class="task-card" draggable="true" data-id="2">
+    <div class="task-top">
+      <div class="task-title">Dark-Mode implementieren</div>
+      <button class="task-menu" onclick="openCtx(event,2)">⋯</button>
+    </div>
+    <div class="task-desc">Theme-Umschaltung einbauen</div>
+    
+    <div class="task-meta">
+      <span class="priority-badge p-low">Niedrig</span>
+      
+      <span class="task-date">20.07.</span>
+    </div></div><div class="task-card" draggable="true" data-id="12">
+    <div class="task-top">
+      <div class="task-title">dfbb</div>
+      <button class="task-menu" onclick="openCtx(event,12)">⋯</button>
+    </div>
+    
+    
+    <div class="task-meta">
+      <span class="priority-badge p-medium">Mittel</span>
+      
+      
+    </div></div><button class="add-card-btn" onclick="openAddModal('backlog')">+ Aufgabe</button></div>
       </div>
 
       <div class="kanban-col col-todo">
         <div class="col-header">
           <div class="col-title"><span class="col-dot"></span>Offen</div>
-          <span class="col-count" id="count-todo">0</span>
+          <span class="col-count" id="count-todo">2</span>
         </div>
-        <div class="col-cards" id="cards-todo"
-             ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'todo')"></div>
+        <div class="col-cards" id="cards-todo" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'todo')"><div class="task-card" draggable="true" data-id="3">
+    <div class="task-top">
+      <div class="task-title">Design-System überarbeiten</div>
+      <button class="task-menu" onclick="openCtx(event,3)">⋯</button>
+    </div>
+    <div class="task-desc">Farben, Abstände und Typografie vereinheitlichen</div>
+    
+    <div class="task-meta">
+      <span class="priority-badge p-high">Hoch</span>
+      
+      <span class="task-date">15.06.</span>
+    </div></div><div class="task-card" draggable="true" data-id="4">
+    <div class="task-top">
+      <div class="task-title">API-Dokumentation schreiben</div>
+      <button class="task-menu" onclick="openCtx(event,4)">⋯</button>
+    </div>
+    <div class="task-desc">Alle Endpunkte beschreiben und Beispiele ergänzen</div>
+    
+    <div class="task-meta">
+      <span class="priority-badge p-medium">Mittel</span>
+      
+      <span class="task-date">20.06.</span>
+    </div></div><button class="add-card-btn" onclick="openAddModal('todo')">+ Aufgabe</button></div>
       </div>
 
       <div class="kanban-col col-progress">
         <div class="col-header">
           <div class="col-title"><span class="col-dot"></span>In Arbeit</div>
-          <span class="col-count" id="count-progress">0</span>
+          <span class="col-count" id="count-progress">2</span>
         </div>
-        <div class="col-cards" id="cards-progress"
-             ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'progress')"></div>
+        <div class="col-cards" id="cards-progress" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'progress')"><div class="task-card" draggable="true" data-id="5">
+    <div class="task-top">
+      <div class="task-title">Login-Bug beheben</div>
+      <button class="task-menu" onclick="openCtx(event,5)">⋯</button>
+    </div>
+    <div class="task-desc">Nutzer werden nach Session-Timeout falsch weitergeleitet</div>
+    
+    <div class="task-meta">
+      <span class="priority-badge p-urgent">Dringend</span>
+      
+      <span class="task-date">30.05.</span>
+    </div></div><div class="task-card" draggable="true" data-id="6">
+    <div class="task-top">
+      <div class="task-title">Unit-Tests erweitern</div>
+      <button class="task-menu" onclick="openCtx(event,6)">⋯</button>
+    </div>
+    <div class="task-desc">Coverage auf 85 % erhöhen</div>
+    
+    <div class="task-meta">
+      <span class="priority-badge p-medium">Mittel</span>
+      
+      <span class="task-date">10.06.</span>
+    </div></div><button class="add-card-btn" onclick="openAddModal('progress')">+ Aufgabe</button></div>
       </div>
 
       <div class="kanban-col col-review">
         <div class="col-header">
           <div class="col-title"><span class="col-dot"></span>Review</div>
-          <span class="col-count" id="count-review">0</span>
+          <span class="col-count" id="count-review">2</span>
         </div>
-        <div class="col-cards" id="cards-review"
-             ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'review')"></div>
+        <div class="col-cards" id="cards-review" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'review')"><div class="task-card" draggable="true" data-id="7">
+    <div class="task-top">
+      <div class="task-title">Datenbank-Migration planen</div>
+      <button class="task-menu" onclick="openCtx(event,7)">⋯</button>
+    </div>
+    <div class="task-desc">PostgreSQL 15 → 16 Upgrade vorbereiten</div>
+    
+    <div class="task-meta">
+      <span class="priority-badge p-high">Hoch</span>
+      
+      <span class="task-date">05.06.</span>
+    </div></div><div class="task-card" draggable="true" data-id="8">
+    <div class="task-top">
+      <div class="task-title">Onboarding-Flow testen</div>
+      <button class="task-menu" onclick="openCtx(event,8)">⋯</button>
+    </div>
+    <div class="task-desc">Feedback von UX-Team einholen</div>
+    
+    <div class="task-meta">
+      <span class="priority-badge p-low">Niedrig</span>
+      
+      <span class="task-date">08.06.</span>
+    </div></div><button class="add-card-btn" onclick="openAddModal('review')">+ Aufgabe</button></div>
       </div>
 
       <div class="kanban-col col-done">
         <div class="col-header">
           <div class="col-title"><span class="col-dot"></span>Erledigt</div>
-          <span class="col-count" id="count-done">0</span>
+          <span class="col-count" id="count-done">3</span>
         </div>
-        <div class="col-cards" id="cards-done"
-             ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'done')"></div>
+        <div class="col-cards" id="cards-done" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'done')"><div class="task-card" draggable="true" data-id="9">
+    <div class="task-top">
+      <div class="task-title">Deployment-Pipeline optimieren</div>
+      <button class="task-menu" onclick="openCtx(event,9)">⋯</button>
+    </div>
+    <div class="task-desc">Build-Zeit um 30 % reduzieren</div>
+    
+    <div class="task-meta">
+      <span class="priority-badge p-medium">Mittel</span>
+      
+      <span class="task-date">28.05.</span>
+    </div></div><div class="task-card" draggable="true" data-id="10">
+    <div class="task-top">
+      <div class="task-title">Sprint-Retrospektive</div>
+      <button class="task-menu" onclick="openCtx(event,10)">⋯</button>
+    </div>
+    <div class="task-desc">Lessons learned dokumentieren</div>
+    
+    <div class="task-meta">
+      <span class="priority-badge p-low">Niedrig</span>
+      
+      <span class="task-date">29.05.</span>
+    </div></div><div class="task-card" draggable="true" data-id="11">
+    <div class="task-top">
+      <div class="task-title">vsvs</div>
+      <button class="task-menu" onclick="openCtx(event,11)">⋯</button>
+    </div>
+    
+    
+    <div class="task-meta">
+      <span class="priority-badge p-medium">Mittel</span>
+      
+      
+    </div></div><button class="add-card-btn" onclick="openAddModal('done')">+ Aufgabe</button></div>
       </div>
 
     </div>
@@ -384,12 +505,12 @@
       <div class="progress-overall">
         <div class="progress-label">
           <span>Gesamt-Fortschritt</span>
-          <span class="progress-pct" id="pct-total">0%</span>
+          <span class="progress-pct" id="pct-total">25%</span>
         </div>
-        <div class="progress-bar-bg"><div class="progress-bar-fill" id="bar-total" style="width:0%"></div></div>
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="bar-total" style="width: 25%;"></div></div>
       </div>
       <div class="chart-wrap" style="height:175px;">
-        <canvas id="progressChart" role="img" aria-label="Aufgaben nach Status">Verteilung.</canvas>
+        <canvas id="progressChart" role="img" aria-label="Aufgaben nach Status" width="524" height="350" style="display: block; box-sizing: border-box; height: 175px; width: 262px;">Verteilung.</canvas>
       </div>
     </div>
 
@@ -406,9 +527,24 @@
         <button class="btn" style="font-size:10px;padding:3px 7px;" onclick="setQuickRange(30)">30 T</button>
         <button class="btn" style="font-size:10px;padding:3px 7px;" onclick="setQuickRange(90)">90 T</button>
       </div>
-      <div class="chart-legend" id="chart-legend"></div>
+      <div class="chart-legend" id="chart-legend"><div class="legend-item">
+         <div class="legend-dot" style="background:#888680"></div>
+         Backlog
+       </div><div class="legend-item">
+         <div class="legend-dot" style="background:#5a82b4"></div>
+         Offen
+       </div><div class="legend-item">
+         <div class="legend-dot" style="background:#c8a02a"></div>
+         In Arbeit
+       </div><div class="legend-item">
+         <div class="legend-dot" style="background:#9a78d0"></div>
+         Review
+       </div><div class="legend-item">
+         <div class="legend-dot" style="background:#4aaa72"></div>
+         Erledigt
+       </div></div>
       <div class="chart-wrap" style="height:200px;">
-        <canvas id="weekChart" role="img" aria-label="Aufgaben je Spalte im gewählten Zeitraum">Zeitverlauf.</canvas>
+        <canvas id="weekChart" role="img" aria-label="Aufgaben je Spalte im gewählten Zeitraum" width="524" height="400" style="display: block; box-sizing: border-box; height: 200px; width: 262px;">Zeitverlauf.</canvas>
       </div>
     </div>
 
@@ -417,23 +553,23 @@
       <div class="priority-rows">
         <div class="priority-row">
           <span class="priority-badge p-urgent" style="min-width:65px">Dringend</span>
-          <div class="p-mini-bar-bg"><div class="p-mini-bar-fill" id="bar-urgent" style="width:0%;background:var(--p-urgent-text)"></div></div>
-          <span class="p-count" id="cnt-urgent">0</span>
+          <div class="p-mini-bar-bg"><div class="p-mini-bar-fill" id="bar-urgent" style="width: 11%; background: var(--p-urgent-text);"></div></div>
+          <span class="p-count" id="cnt-urgent">1</span>
         </div>
         <div class="priority-row">
           <span class="priority-badge p-high" style="min-width:65px">Hoch</span>
-          <div class="p-mini-bar-bg"><div class="p-mini-bar-fill" id="bar-high" style="width:0%;background:var(--p-high-text)"></div></div>
-          <span class="p-count" id="cnt-high">0</span>
+          <div class="p-mini-bar-bg"><div class="p-mini-bar-fill" id="bar-high" style="width: 22%; background: var(--p-high-text);"></div></div>
+          <span class="p-count" id="cnt-high">2</span>
         </div>
         <div class="priority-row">
           <span class="priority-badge p-medium" style="min-width:65px">Mittel</span>
-          <div class="p-mini-bar-bg"><div class="p-mini-bar-fill" id="bar-medium" style="width:0%;background:var(--p-medium-text)"></div></div>
-          <span class="p-count" id="cnt-medium">0</span>
+          <div class="p-mini-bar-bg"><div class="p-mini-bar-fill" id="bar-medium" style="width: 44%; background: var(--p-medium-text);"></div></div>
+          <span class="p-count" id="cnt-medium">4</span>
         </div>
         <div class="priority-row">
           <span class="priority-badge p-low" style="min-width:65px">Niedrig</span>
-          <div class="p-mini-bar-bg"><div class="p-mini-bar-fill" id="bar-low" style="width:0%;background:var(--p-low-text)"></div></div>
-          <span class="p-count" id="cnt-low">0</span>
+          <div class="p-mini-bar-bg"><div class="p-mini-bar-fill" id="bar-low" style="width: 22%; background: var(--p-low-text);"></div></div>
+          <span class="p-count" id="cnt-low">2</span>
         </div>
       </div>
     </div>
@@ -464,7 +600,7 @@
         <label class="form-label">Priorität</label>
         <select class="form-select" id="field-priority">
           <option value="low">Niedrig</option>
-          <option value="medium" selected>Mittel</option>
+          <option value="medium" selected="">Mittel</option>
           <option value="high">Hoch</option>
           <option value="urgent">Dringend</option>
         </select>
@@ -501,7 +637,7 @@
     <div class="form-group">
       <label class="form-label">Bilder – Datei auswählen oder ziehen</label>
       <div class="upload-zone-wrap" id="upload-zone-img">
-        <input type="file" id="field-images" accept="image/*" multiple onchange="handleImageFiles(this.files)">
+        <input type="file" id="field-images" accept="image/*" multiple="" onchange="handleImageFiles(this.files)">
         <div class="upload-hint">PNG, JPG, GIF, WebP – mehrere möglich · <span>Auswählen</span></div>
       </div>
     </div>
@@ -509,8 +645,7 @@
     <!-- BILDER – Zwischenablage (Rechtsklick Einfügen / Strg+V) -->
     <div class="form-group">
       <label class="form-label">Bild aus Zwischenablage (Rechtsklick → Einfügen  /  Strg+V)</label>
-      <div class="paste-zone" id="paste-zone" contenteditable="true" tabindex="0"
-           title="Hier klicken, dann Bild einfügen">Hier klicken, dann Strg+V oder Rechtsklick → Einfügen</div>
+      <div class="paste-zone" id="paste-zone" contenteditable="true" tabindex="0" title="Hier klicken, dann Bild einfügen">Hier klicken, dann Strg+V oder Rechtsklick → Einfügen</div>
     </div>
 
     <!-- Vorschau Bilder -->
@@ -520,7 +655,7 @@
     <div class="form-group" style="margin-top:12px;">
       <label class="form-label">PDF-Dateien anhängen</label>
       <div class="upload-zone-wrap" id="upload-zone-pdf">
-        <input type="file" id="field-pdfs" accept="application/pdf" multiple onchange="handlePdfFiles(this.files)">
+        <input type="file" id="field-pdfs" accept="application/pdf" multiple="" onchange="handlePdfFiles(this.files)">
         <div class="upload-hint">PDF hierher ziehen oder <span>auswählen</span></div>
       </div>
       <div class="pdf-previews" id="pdf-previews"></div>
@@ -534,14 +669,14 @@
 </div>
 
 <!-- SYNC MODAL -->
-<div class="modal-overlay" id="sync-modal-overlay" onclick="closeSyncModal(event)">
+<div class="modal-overlay open" id="sync-modal-overlay" onclick="closeSyncModal(event)">
   <div class="sync-modal" onclick="event.stopPropagation()">
-    <h2>💾 Daten & Sync</h2>
+    <h2>💾 Daten &amp; Sync</h2>
 
     <div class="sync-section">
       <div class="sync-section-title">Lokaler Speicher (dieses Gerät)</div>
-      <div class="storage-bar-wrap"><div class="storage-bar-fill" id="storage-bar" style="width:0%;background:var(--accent)"></div></div>
-      <div class="sync-info" id="storage-info">Wird berechnet…</div>
+      <div class="storage-bar-wrap"><div class="storage-bar-fill" id="storage-bar" style="width: 0.048161%; background: rgb(74, 170, 114);"></div></div>
+      <div class="sync-info" id="storage-info"><strong>12</strong> Aufgaben · <strong>2 KB</strong> belegt (max ~5 MB) · Zuletzt gespeichert: <strong>26.04.2026, 13:20</strong></div>
       <div style="display:flex;gap:8px;margin-top:8px;">
         <button class="btn btn-primary" onclick="saveNow()">Jetzt speichern</button>
         <button class="btn" onclick="loadFromStorage()">Letzten Stand laden</button>
@@ -549,7 +684,7 @@
     </div>
 
     <div class="sync-section">
-      <div class="sync-section-title">Export — Datensicherung & Geräte-Sync</div>
+      <div class="sync-section-title">Export — Datensicherung &amp; Geräte-Sync</div>
       <div class="sync-actions">
         <button class="btn" onclick="exportJSON()">⬇ Als JSON exportieren</button>
         <button class="btn" onclick="exportHTMLWithData()">⬇ Dashboard + Daten (.html)</button>
@@ -1520,7 +1655,7 @@ function exportHTMLWithData() {
   // Read the current page source and inject the snapshot
   const marker = '/* __EMBEDDED_DATA_PLACEHOLDER__ */';
   const embedScript = `<script>try{localStorage.setItem('${LS_KEY}', ${JSON.stringify(snapshot)});}catch(e){}<\/script>`;
-  // We'll inject a small bootstrap script right before </body>
+  // We'll inject a small bootstrap script right before <script>try{localStorage.setItem('flow-dashboard-v1', "{\"tasks\":[{\"id\":1,\"title\":\"Mobile Responsive Design\",\"desc\":\"Alle Seiten für Mobilgeräte optimieren\",\"priority\":\"medium\",\"col\":\"backlog\",\"date\":\"2026-07-10\",\"images\":[],\"pdfs\":[],\"created\":1774781356154},{\"id\":2,\"title\":\"Dark-Mode implementieren\",\"desc\":\"Theme-Umschaltung einbauen\",\"priority\":\"low\",\"col\":\"backlog\",\"date\":\"2026-07-20\",\"images\":[],\"pdfs\":[],\"created\":1775299756154},{\"id\":3,\"title\":\"Design-System überarbeiten\",\"desc\":\"Farben, Abstände und Typografie vereinheitlichen\",\"priority\":\"high\",\"col\":\"todo\",\"date\":\"2026-06-15\",\"images\":[],\"pdfs\":[],\"created\":1775645356154},{\"id\":4,\"title\":\"API-Dokumentation schreiben\",\"desc\":\"Alle Endpunkte beschreiben und Beispiele ergänzen\",\"priority\":\"medium\",\"col\":\"todo\",\"date\":\"2026-06-20\",\"images\":[],\"pdfs\":[],\"created\":1775990956154},{\"id\":5,\"title\":\"Login-Bug beheben\",\"desc\":\"Nutzer werden nach Session-Timeout falsch weitergeleitet\",\"priority\":\"urgent\",\"col\":\"progress\",\"date\":\"2026-05-30\",\"images\":[],\"pdfs\":[],\"created\":1776336556154},{\"id\":6,\"title\":\"Unit-Tests erweitern\",\"desc\":\"Coverage auf 85 % erhöhen\",\"priority\":\"medium\",\"col\":\"progress\",\"date\":\"2026-06-10\",\"images\":[],\"pdfs\":[],\"created\":1776595756154},{\"id\":7,\"title\":\"Datenbank-Migration planen\",\"desc\":\"PostgreSQL 15 → 16 Upgrade vorbereiten\",\"priority\":\"high\",\"col\":\"review\",\"date\":\"2026-06-05\",\"images\":[],\"pdfs\":[],\"created\":1776768556154},{\"id\":8,\"title\":\"Onboarding-Flow testen\",\"desc\":\"Feedback von UX-Team einholen\",\"priority\":\"low\",\"col\":\"review\",\"date\":\"2026-06-08\",\"images\":[],\"pdfs\":[],\"created\":1776854956154},{\"id\":9,\"title\":\"Deployment-Pipeline optimieren\",\"desc\":\"Build-Zeit um 30 % reduzieren\",\"priority\":\"medium\",\"col\":\"done\",\"date\":\"2026-05-28\",\"images\":[],\"pdfs\":[],\"created\":1777027756154},{\"id\":10,\"title\":\"Sprint-Retrospektive\",\"desc\":\"Lessons learned dokumentieren\",\"priority\":\"low\",\"col\":\"done\",\"date\":\"2026-05-29\",\"images\":[],\"pdfs\":[],\"created\":1777114156154},{\"id\":11,\"title\":\"vsvs\",\"desc\":\"\",\"priority\":\"medium\",\"col\":\"done\",\"date\":\"\",\"owner\":\"\",\"images\":[],\"pdfs\":[],\"created\":1777201227373},{\"id\":12,\"title\":\"dfbb\",\"desc\":\"\",\"priority\":\"medium\",\"col\":\"backlog\",\"date\":\"\",\"owner\":\"\",\"images\":[],\"pdfs\":[],\"created\":1777201240355}],\"nextId\":13,\"activityLog\":[{\"text\":\"\\\"vsvs\\\" → Erledigt\",\"time\":\"2026-04-26T11:19:53.488Z\"},{\"text\":\"\\\"vsvs\\\" → In Arbeit\",\"time\":\"2026-04-26T11:19:50.639Z\"},{\"text\":\"\\\"dfbb\\\" hinzugefügt\",\"time\":\"2026-04-26T11:00:40.355Z\"},{\"text\":\"\\\"vsvs\\\" hinzugefügt\",\"time\":\"2026-04-26T11:00:27.373Z\"}],\"savedAt\":\"2026-04-26T11:30:18.349Z\"}");}catch(e){}</script></body>
   let html = document.documentElement.outerHTML;
   html = html.replace('</body>', embedScript + '</body>');
   downloadFile(html, 'text/html', 'flow-dashboard-' + dateStamp() + '.html');
@@ -1615,5 +1750,6 @@ document.addEventListener('keydown', e => {
 
 init();
 </script>
-</body>
-</html>
+
+
+</body></html>
