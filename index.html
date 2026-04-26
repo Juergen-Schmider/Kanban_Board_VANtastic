@@ -1516,49 +1516,50 @@ function exportJSON() {
 }
 
 function exportHTMLWithData() {
-  // 1. Close the sync modal first so it is not serialised as "open"
-  document.getElementById('sync-modal-overlay').classList.remove('open');
-  document.getElementById('modal-overlay').classList.remove('open');
+  // Fetch the original clean HTML source of this page, then inject the data.
+  // This avoids all problems with outerHTML (live DOM state, broken script tags, etc.)
+  const snapshot = JSON.stringify({
+    tasks,
+    nextId,
+    activityLog: activityLog.map(a => ({...a, time: a.time.toISOString()})),
+    savedAt: new Date().toISOString()
+  });
 
-  // Small delay so the DOM updates before we read outerHTML
-  setTimeout(() => {
-    const snapshot = JSON.stringify({
-      tasks,
-      nextId,
-      activityLog: activityLog.map(a => ({...a, time: a.time.toISOString()})),
-      savedAt: new Date().toISOString()
+  // Close modal before anything else
+  closeSyncModal();
+
+  fetch(window.location.href)
+    .then(r => r.text())
+    .then(html => {
+      // Remove any previously embedded bootstrap script (avoid duplicates on re-export)
+      html = html.replace(/<script id="embedded-data-bootstrap">[\s\S]*?<\/script>\s*/g, '');
+
+      // Build the bootstrap script as a safe string (no regex with quotes needed)
+      const key = LS_KEY;
+      const lines = [
+        '<script id="embedded-data-bootstrap">',
+        'try{',
+        'localStorage.setItem(' + "'" + key + "'" + ',' + "'" + snapshot.replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'" + ');',
+        '}catch(e){}',
+        '<\/script>'
+      ];
+      const bootstrap = lines.join('');
+
+      // Inject before closing body tag
+      if (html.includes('</body>')) {
+        html = html.slice(0, html.lastIndexOf('</body>')) + bootstrap + '\n</body>\n</html>';
+      } else {
+        html = html + bootstrap;
+      }
+
+      downloadFile(html, 'text/html', 'flow-dashboard-' + dateStamp() + '.html');
+      showToast('\u2713 Dashboard mit Daten exportiert', 'success');
+    })
+    .catch(() => {
+      // Fallback if fetch fails (e.g. file:// protocol) - use simple JSON export
+      showToast('HTML-Export nicht verfügbar. Bitte JSON exportieren.', 'warn', 4000);
+      exportJSON();
     });
-
-    // Serialise the current (now-clean) DOM
-    let html = document.documentElement.outerHTML;
-
-    // Remove any leftover "open" classes on overlays that outerHTML may have captured
-    html = html.replace(/(<div[^>]+id="sync-modal-overlay"[^>]*)\s+open/g, '$1');
-    html = html.replace(/(<div[^>]+id="modal-overlay"[^>]*)\s+open/g, '$1');
-    html = html.replace(/(<div[^>]+class="[^"]*modal-overlay[^"]*)\s*open([^"]*")/g, '$1$2');
-    html = html.replace(/class="modal-overlay open"/g, 'class="modal-overlay"');
-    html = html.replace(/class="sync-modal open"/g, 'class="sync-modal"');
-
-    // Inject bootstrap script that pre-loads data into localStorage before init() runs
-    const bootstrapScript =
-      '<script id="embedded-data-bootstrap">' +
-      'try{' +
-        'var _d=' + JSON.stringify(snapshot) + ';' +
-        'localStorage.setItem("' + LS_KEY + '",_d);' +
-      '}catch(e){console.warn("Embedded data could not be loaded:",e);}' +
-      '<\/script>';
-
-    // Inject right before the closing </body> tag
-    if (html.includes('</body>')) {
-      html = html.replace('</body>', bootstrapScript + '
-</body>');
-    } else {
-      html += bootstrapScript;
-    }
-
-    downloadFile(html, 'text/html', 'flow-dashboard-' + dateStamp() + '.html');
-    showToast('✓ Dashboard mit Daten exportiert', 'success');
-  }, 80);
 }
 
 /* ─── IMPORT ─────────────────────────────────────────── */
