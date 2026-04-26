@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "exportedAt": "2026-04-26T16:07:39.244Z",
+  "exportedAt": "2026-04-26T18:32:18.945Z",
   "tasks": [
     {
       "id": 1,
@@ -178,7 +178,8 @@
         }
       ],
       "pdfs": [],
-      "created": 1777217084294
+      "created": 1777217084294,
+      "art": "Konstruktion"
     },
     {
       "id": 15,
@@ -208,6 +209,10 @@
   "nextId": 17,
   "activityLog": [
     {
+      "text": "\"TEST_17:24\" bearbeitet",
+      "time": "2026-04-26T18:32:08.028Z"
+    },
+    {
       "text": "\"Test_18:04\" hinzugefügt",
       "time": "2026-04-26T16:05:16.165Z"
     },
@@ -234,10 +239,6 @@
     {
       "text": "\"cvbbbd\" → Offen",
       "time": "2026-04-26T14:25:04.072Z"
-    },
-    {
-      "text": "\"Dark-Mode implementieren\" → Review",
-      "time": "2026-04-26T14:25:01.138Z"
     }
   ]
 }
