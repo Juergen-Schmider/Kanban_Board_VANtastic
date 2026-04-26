@@ -533,6 +533,70 @@
   </div>
 </div>
 
+<!-- GITHUB SETUP MODAL -->
+<div class="modal-overlay" id="github-setup-overlay" onclick="closeGitHubSetup(event)">
+  <div class="sync-modal" onclick="event.stopPropagation()">
+    <h2>⚙ GitHub-Direktsync einrichten</h2>
+
+    <div class="sync-info" style="margin-bottom:14px;">
+      <strong>Einmalige Einrichtung in 3 Schritten</strong> — danach genügt ein Klick zum Synchronisieren.
+    </div>
+
+    <div class="sync-section">
+      <div class="sync-section-title">1. Repository</div>
+      <input type="text" class="form-input" id="gh-owner" placeholder="z.B. Juergen-Schmider" autocomplete="off" autocapitalize="off">
+      <div style="font-size:10px;color:var(--text-dim);margin:4px 0 8px;">GitHub-Benutzername (Owner)</div>
+      <input type="text" class="form-input" id="gh-repo" placeholder="z.B. Kanban_Board_VANtastic" autocomplete="off" autocapitalize="off">
+      <div style="font-size:10px;color:var(--text-dim);margin-top:4px;">Repository-Name</div>
+    </div>
+
+    <div class="sync-section">
+      <div class="sync-section-title">2. Branch & Datei</div>
+      <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;">
+        <div>
+          <input type="text" class="form-input" id="gh-branch" placeholder="main" value="main" autocomplete="off">
+          <div style="font-size:10px;color:var(--text-dim);margin-top:4px;">Branch</div>
+        </div>
+        <div>
+          <input type="text" class="form-input" id="gh-path" placeholder="data.json" value="data.json" autocomplete="off">
+          <div style="font-size:10px;color:var(--text-dim);margin-top:4px;">Dateipfad</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sync-section">
+      <div class="sync-section-title">3. Personal Access Token</div>
+      <input type="password" class="form-input" id="gh-token" placeholder="ghp_..." autocomplete="off" autocapitalize="off">
+      <div style="font-size:11px;color:var(--text-muted);margin-top:8px;line-height:1.6;">
+        Token wird <strong>nur lokal auf diesem Gerät</strong> gespeichert (localStorage) und nie geteilt.<br>
+        <a href="https://github.com/settings/tokens/new?description=VANtastic%20Kanban&scopes=repo" target="_blank" rel="noopener" style="color:var(--accent);">→ Token bei GitHub erstellen</a> (Scope: <code>repo</code>, gültig 90 Tage oder mehr)
+      </div>
+    </div>
+
+    <div class="sync-section">
+      <details style="font-size:11px;color:var(--text-muted);">
+        <summary style="cursor:pointer;color:var(--accent);">Wie erstelle ich einen Token? (Anleitung anzeigen)</summary>
+        <ol style="padding-left:20px;margin-top:8px;line-height:1.8;">
+          <li>Klick auf den Link oben — du landest direkt auf der GitHub Token-Seite</li>
+          <li>Bei „Note" einen Namen eingeben, z.B. „VANtastic Kanban"</li>
+          <li>Bei „Expiration" wählen wie lange der Token gilt (z.B. 90 Tage)</li>
+          <li>Bei „Select scopes" muss <strong>repo</strong> angehakt sein (sollte schon vorausgewählt sein)</li>
+          <li>Ganz unten <strong>„Generate token"</strong> klicken</li>
+          <li>Den angezeigten Token (<code>ghp_...</code>) kopieren und hier einfügen</li>
+          <li><strong>Wichtig:</strong> Der Token wird nur einmal angezeigt — bei Verlust einen neuen erstellen</li>
+        </ol>
+      </details>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn" onclick="clearGitHubConfig()" style="border-color:var(--p-high-text);color:var(--p-high-text);">Verbindung trennen</button>
+      <div style="flex:1;"></div>
+      <button class="btn" onclick="closeGitHubSetup()">Abbrechen</button>
+      <button class="btn btn-primary" onclick="saveGitHubConfig()">Speichern & Testen</button>
+    </div>
+  </div>
+</div>
+
 <!-- SYNC MODAL -->
 <div class="modal-overlay" id="sync-modal-overlay" onclick="closeSyncModal(event)">
   <div class="sync-modal" onclick="event.stopPropagation()">
@@ -548,16 +612,29 @@
       </div>
     </div>
 
-    <div class="sync-section">
-      <div class="sync-section-title">Export — Datensicherung & Geräte-Sync</div>
+    <div class="sync-section" style="border:1px solid var(--accent);border-radius:10px;padding:14px;background:rgba(200,169,110,0.05);">
+      <div class="sync-section-title" style="color:var(--accent);">⚡ GitHub Direkt-Sync (empfohlen)</div>
+      <div id="github-status" style="font-size:11px;color:var(--text-muted);margin-bottom:8px;line-height:1.5;">
+        <span id="github-status-text">Nicht konfiguriert — bitte GitHub-Zugang einrichten.</span>
+      </div>
       <div class="sync-actions">
-        <button class="btn" onclick="exportJSON()">⬇ JSON-Backup (mit Datum)</button>
-        <button class="btn btn-primary" onclick="exportHTMLWithData()">⬇ data.json für GitHub-Sync</button>
+        <button class="btn btn-primary" id="github-push-btn" onclick="pushToGitHub()" style="opacity:0.5;" disabled>⬆ Jetzt zu GitHub pushen</button>
+        <button class="btn" onclick="openGitHubSetup()">⚙ Konfigurieren</button>
+        <button class="btn" onclick="pullFromGitHub()" id="github-pull-btn" style="opacity:0.5;" disabled>⬇ Von GitHub laden</button>
       </div>
       <div class="sync-info">
-        <strong>JSON exportieren:</strong> Sichert alle Aufgaben, Bilder und PDFs als <code>data.json</code>.<br>
-        Lade <code>data.json</code> neben <code>index.html</code> auf GitHub hoch — beim nächsten Öffnen werden die Daten automatisch geladen.<br>
-        Funktioniert auf allen Geräten (Mac, iPhone, iPad).
+        Lädt <code>data.json</code> mit einem Klick direkt zu GitHub hoch. Funktioniert auf Mac, iPhone und iPad — keine GitHub-Website nötig.
+      </div>
+    </div>
+
+    <div class="sync-section">
+      <div class="sync-section-title">Manueller Export — falls GitHub-Sync nicht verfügbar</div>
+      <div class="sync-actions">
+        <button class="btn" onclick="exportJSON()">⬇ JSON-Backup (mit Datum)</button>
+        <button class="btn" onclick="exportHTMLWithData()">⬇ data.json (manuell hochladen)</button>
+      </div>
+      <div class="sync-info">
+        Lade <code>data.json</code> manuell neben <code>index.html</code> auf GitHub hoch.
       </div>
     </div>
 
@@ -694,6 +771,7 @@ function init() {
     setupPasteZone();
     setupDropZones();
     updateSyncBar();
+    updateGitHubStatus();
   });
 }
 
@@ -1579,6 +1657,7 @@ function setSyncDot(state) {
 /* ─── SYNC MODAL ─────────────────────────────────────── */
 function openSyncModal() {
   updateStorageInfo();
+  updateGitHubStatus();
   document.getElementById('sync-modal-overlay').classList.add('open');
 }
 function closeSyncModal(e) {
@@ -1609,6 +1688,201 @@ function updateStorageInfo() {
         `Zuletzt gespeichert: <strong>${savedStr}</strong>`;
     }
   } catch(e) {}
+}
+
+/* ─── GITHUB DIRECT SYNC ────────────────────────────── */
+const GH_KEY = 'flow-github-config-v1';
+
+function getGitHubConfig() {
+  try {
+    const raw = localStorage.getItem(GH_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) { return null; }
+}
+
+function setGitHubConfig(cfg) {
+  try { localStorage.setItem(GH_KEY, JSON.stringify(cfg)); return true; }
+  catch(e) { showToast('Konfiguration konnte nicht gespeichert werden', 'error'); return false; }
+}
+
+function openGitHubSetup() {
+  closeSyncModal();
+  const cfg = getGitHubConfig() || {};
+  document.getElementById('gh-owner').value  = cfg.owner  || '';
+  document.getElementById('gh-repo').value   = cfg.repo   || '';
+  document.getElementById('gh-branch').value = cfg.branch || 'main';
+  document.getElementById('gh-path').value   = cfg.path   || 'data.json';
+  document.getElementById('gh-token').value  = cfg.token  || '';
+  document.getElementById('github-setup-overlay').classList.add('open');
+}
+
+function closeGitHubSetup(e) {
+  if (!e || e.target === document.getElementById('github-setup-overlay'))
+    document.getElementById('github-setup-overlay').classList.remove('open');
+}
+
+async function saveGitHubConfig() {
+  const owner  = document.getElementById('gh-owner').value.trim();
+  const repo   = document.getElementById('gh-repo').value.trim();
+  const branch = document.getElementById('gh-branch').value.trim() || 'main';
+  const path   = document.getElementById('gh-path').value.trim()   || 'data.json';
+  const token  = document.getElementById('gh-token').value.trim();
+
+  if (!owner || !repo || !token) {
+    showToast('Bitte Owner, Repository und Token ausfüllen', 'warn');
+    return;
+  }
+
+  // Test the connection
+  showToast('Teste Verbindung zu GitHub…', '', 2000);
+  try {
+    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+      headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github+json' }
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new Error('Token ungültig');
+      if (res.status === 404) throw new Error('Repository nicht gefunden');
+      throw new Error('HTTP ' + res.status);
+    }
+    setGitHubConfig({owner, repo, branch, path, token});
+    closeGitHubSetup();
+    showToast('\u2713 GitHub-Verbindung erfolgreich!', 'success', 3000);
+    updateGitHubStatus();
+  } catch(err) {
+    showToast('Verbindungsfehler: ' + err.message, 'error', 5000);
+  }
+}
+
+function clearGitHubConfig() {
+  if (!confirm('GitHub-Verbindung wirklich trennen? Token wird gelöscht.')) return;
+  localStorage.removeItem(GH_KEY);
+  closeGitHubSetup();
+  updateGitHubStatus();
+  showToast('GitHub-Verbindung getrennt', 'warn');
+}
+
+function updateGitHubStatus() {
+  const cfg = getGitHubConfig();
+  const statusEl = document.getElementById('github-status-text');
+  const pushBtn  = document.getElementById('github-push-btn');
+  const pullBtn  = document.getElementById('github-pull-btn');
+  if (!statusEl) return;
+
+  if (cfg && cfg.owner && cfg.repo && cfg.token) {
+    statusEl.innerHTML = `Verbunden: <strong style="color:var(--accent);">${escHtml(cfg.owner)}/${escHtml(cfg.repo)}</strong> &middot; <code>${escHtml(cfg.path)}</code> @ <code>${escHtml(cfg.branch)}</code>`;
+    if (pushBtn) { pushBtn.disabled = false; pushBtn.style.opacity = '1'; }
+    if (pullBtn) { pullBtn.disabled = false; pullBtn.style.opacity = '1'; }
+  } else {
+    statusEl.textContent = 'Nicht konfiguriert — bitte GitHub-Zugang einrichten.';
+    if (pushBtn) { pushBtn.disabled = true; pushBtn.style.opacity = '0.5'; }
+    if (pullBtn) { pullBtn.disabled = true; pullBtn.style.opacity = '0.5'; }
+  }
+}
+
+async function pushToGitHub() {
+  const cfg = getGitHubConfig();
+  if (!cfg) { showToast('Bitte erst GitHub konfigurieren', 'warn'); return; }
+
+  const btn = document.getElementById('github-push-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Lade hoch…'; }
+
+  try {
+    // Build payload
+    const payload = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      tasks: tasks,
+      nextId: nextId,
+      activityLog: activityLog.map(a => ({text: a.text, time: a.time.toISOString()}))
+    };
+    const content = JSON.stringify(payload, null, 2);
+    const contentB64 = btoa(unescape(encodeURIComponent(content)));
+
+    const apiUrl = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURIComponent(cfg.path)}`;
+    const headers = {
+      'Authorization': 'token ' + cfg.token,
+      'Accept': 'application/vnd.github+json',
+      'Content-Type': 'application/json'
+    };
+
+    // Step 1: Get current SHA of the file (needed for update)
+    let sha = null;
+    try {
+      const getRes = await fetch(apiUrl + '?ref=' + cfg.branch, { headers });
+      if (getRes.ok) {
+        const getData = await getRes.json();
+        sha = getData.sha;
+      }
+      // 404 = file doesn't exist yet, that's fine
+    } catch(e) { /* ignore */ }
+
+    // Step 2: PUT the new content
+    const body = {
+      message: 'Update data.json from VANtastic Kanban (' + new Date().toLocaleString('de-DE') + ')',
+      content: contentB64,
+      branch: cfg.branch
+    };
+    if (sha) body.sha = sha;
+
+    const putRes = await fetch(apiUrl, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(body)
+    });
+
+    if (!putRes.ok) {
+      const errData = await putRes.json().catch(() => ({}));
+      throw new Error(errData.message || ('HTTP ' + putRes.status));
+    }
+
+    showToast('\u2713 Erfolgreich zu GitHub gepusht (' + tasks.length + ' Aufgaben)', 'success', 4000);
+    addActivity('Zu GitHub synchronisiert');
+    closeSyncModal();
+  } catch(err) {
+    showToast('Push fehlgeschlagen: ' + err.message, 'error', 6000);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '⬆ Jetzt zu GitHub pushen'; }
+  }
+}
+
+async function pullFromGitHub() {
+  const cfg = getGitHubConfig();
+  if (!cfg) { showToast('Bitte erst GitHub konfigurieren', 'warn'); return; }
+
+  if (!confirm('Aktueller Stand wird durch Daten von GitHub ersetzt. Fortfahren?')) return;
+
+  const btn = document.getElementById('github-pull-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Lade…'; }
+
+  try {
+    const apiUrl = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURIComponent(cfg.path)}?ref=${cfg.branch}`;
+    const res = await fetch(apiUrl, {
+      headers: {
+        'Authorization': 'token ' + cfg.token,
+        'Accept': 'application/vnd.github+json'
+      }
+    });
+    if (!res.ok) {
+      if (res.status === 404) throw new Error('data.json existiert noch nicht auf GitHub');
+      throw new Error('HTTP ' + res.status);
+    }
+    const meta = await res.json();
+    const content = decodeURIComponent(escape(atob(meta.content.replace(/\s/g, ''))));
+    const data = JSON.parse(content);
+    if (!data.tasks || !Array.isArray(data.tasks)) throw new Error('Ungültiges Format');
+
+    tasks = data.tasks;
+    nextId = data.nextId || (tasks.length ? Math.max(...tasks.map(t=>t.id)) + 1 : 1);
+    activityLog = (data.activityLog || []).map(a => ({...a, time: new Date(a.time)}));
+    saveToStorage();
+    renderAll();
+    closeSyncModal();
+    showToast('\u2713 ' + tasks.length + ' Aufgaben von GitHub geladen', 'success', 3000);
+  } catch(err) {
+    showToast('Pull fehlgeschlagen: ' + err.message, 'error', 6000);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '⬇ Von GitHub laden'; }
+  }
 }
 
 /* ─── EXPORT ─────────────────────────────────────────── */
@@ -1725,6 +1999,7 @@ document.addEventListener('keydown', e => {
     closeCtx();
     document.getElementById('modal-overlay').classList.remove('open');
     document.getElementById('sync-modal-overlay').classList.remove('open');
+    document.getElementById('github-setup-overlay').classList.remove('open');
     closeLightbox();
   }
   if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') saveTask();
