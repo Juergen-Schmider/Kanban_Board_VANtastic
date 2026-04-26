@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "exportedAt": "2026-04-26T16:03:43.166Z",
+  "exportedAt": "2026-04-26T16:07:39.244Z",
   "tasks": [
     {
       "id": 1,
@@ -191,10 +191,26 @@
       "images": [],
       "pdfs": [],
       "created": 1777219414583
+    },
+    {
+      "id": 16,
+      "title": "Test_18:04",
+      "desc": "",
+      "priority": "medium",
+      "col": "backlog",
+      "date": "",
+      "owner": "",
+      "images": [],
+      "pdfs": [],
+      "created": 1777219516164
     }
   ],
-  "nextId": 16,
+  "nextId": 17,
   "activityLog": [
+    {
+      "text": "\"Test_18:04\" hinzugefügt",
+      "time": "2026-04-26T16:05:16.165Z"
+    },
     {
       "text": "\"TEST_18:03\" hinzugefügt",
       "time": "2026-04-26T16:03:34.583Z"
@@ -222,10 +238,6 @@
     {
       "text": "\"Dark-Mode implementieren\" → Review",
       "time": "2026-04-26T14:25:01.138Z"
-    },
-    {
-      "text": "\"Mobile Responsive Design\" → In Arbeit",
-      "time": "2026-04-26T14:24:57.771Z"
     }
   ]
 }
