@@ -88,6 +88,11 @@
   .task-date{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-dim);}
   .task-date.overdue{color:var(--p-high-text);}
   .task-owner{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:500;padding:2px 7px 2px 2px;border-radius:20px;background:var(--surface3);color:var(--text-muted);white-space:nowrap;}
+  .task-art{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:500;letter-spacing:0.04em;text-transform:uppercase;padding:2px 7px;border-radius:4px;white-space:nowrap;border:1px solid;}
+  .art-konstruktion{background:rgba(90,130,180,0.12);color:#7da4d4;border-color:rgba(90,130,180,0.35);}
+  .art-montage{background:rgba(200,160,42,0.12);color:#d8c050;border-color:rgba(200,160,42,0.35);}
+  .art-vertrieb{background:rgba(154,120,208,0.12);color:#b89cdc;border-color:rgba(154,120,208,0.35);}
+  .art-allgemein{background:rgba(122,120,114,0.15);color:#aaa8a2;border-color:rgba(122,120,114,0.4);}
   .task-owner-avatar{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;flex-shrink:0;color:#0f0e0c;}
   .owner-j{background:#c8a96e;} /* Jürgen  - gold    */
   .owner-w{background:#5a82b4;} /* Wolfgang- blue    */
@@ -313,6 +318,16 @@
 
   <div class="filter-sep"></div>
 
+  <select class="filter-select" id="f-art" onchange="applyFilters()" title="Art">
+    <option value="">⚒ Alle Arten</option>
+    <option value="Konstruktion">Konstruktion</option>
+    <option value="Montage">Montage</option>
+    <option value="Vertrieb">Vertrieb</option>
+    <option value="Allgemein">Allgemein</option>
+  </select>
+
+  <div class="filter-sep"></div>
+
   <div class="filter-date-wrap" title="Fälligkeitsdatum von">
     <span style="font-size:10px;color:var(--text-dim);">📅</span>
     <input type="date" class="filter-date" id="f-date-from" onchange="applyFilters()" title="Fällig ab">
@@ -495,6 +510,16 @@
           <option value="Marc">Marc</option>
         </select>
       </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Art</label>
+      <select class="form-select" id="field-art">
+        <option value="">— Keine —</option>
+        <option value="Konstruktion">Konstruktion</option>
+        <option value="Montage">Montage</option>
+        <option value="Vertrieb">Vertrieb</option>
+        <option value="Allgemein">Allgemein</option>
+      </select>
     </div>
 
     <!-- BILDER – Datei-Upload -->
@@ -890,8 +915,9 @@ function makeCard(t) {
     </div>
     ${t.desc ? `<div class="task-desc">${escHtml(t.desc)}</div>` : ''}
     ${imgHtml}${pdfHtml}
-    <div class="task-meta">
+    <div class="task-meta" style="flex-wrap:wrap;">
       <span class="priority-badge p-${t.priority}">${priorityLabel(t.priority)}</span>
+      ${t.art ? `<span class="task-art ${artClass(t.art)}">${escHtml(t.art)}</span>` : ''}
       ${t.owner ? `<span class="task-owner"><span class="task-owner-avatar ${ownerClass(t.owner)}">${t.owner.charAt(0)}</span>${escHtml(t.owner)}</span>` : ''}
       ${dateStr ? `<span class="task-date${isOverdue ? ' overdue' : ''}">${dateStr}${isOverdue ? ' !' : ''}</span>` : ''}
     </div>`;
@@ -936,6 +962,7 @@ function openAddModal(col) {
   document.getElementById('field-col').value      = col || 'todo';
   document.getElementById('field-date').value     = '';
   document.getElementById('field-owner').value    = '';
+  document.getElementById('field-art').value      = '';
   document.getElementById('field-images').value   = '';
   document.getElementById('field-pdfs').value     = '';
   resetPasteZone();
@@ -957,17 +984,18 @@ function saveTask() {
   const col      = document.getElementById('field-col').value;
   const date     = document.getElementById('field-date').value;
   const owner    = document.getElementById('field-owner').value;
+  const art      = document.getElementById('field-art').value;
 
   if (editingId !== null) {
     const t = tasks.find(x => x.id === editingId);
     if (t) {
       t.title = title; t.desc = desc; t.priority = priority;
-      t.col = col; t.date = date; t.owner = owner;
+      t.col = col; t.date = date; t.owner = owner; t.art = art;
       t.images = pendingImages.slice(); t.pdfs = pendingPdfs.slice();
       addActivity(`"${title}" bearbeitet`);
     }
   } else {
-    tasks.push({id:nextId++, title, desc, priority, col, date, owner,
+    tasks.push({id:nextId++, title, desc, priority, col, date, owner, art,
                 images: pendingImages.slice(), pdfs: pendingPdfs.slice(),
                 created: Date.now()});
     addActivity(`"${title}" hinzugefügt`);
@@ -1008,6 +1036,7 @@ function ctxEdit() {
     document.getElementById('field-col').value      = t.col;
     document.getElementById('field-date').value     = t.date || '';
     document.getElementById('field-owner').value    = t.owner || '';
+    document.getElementById('field-art').value      = t.art || '';
     document.getElementById('field-images').value   = '';
     document.getElementById('field-pdfs').value     = '';
     resetPasteZone();
@@ -1418,6 +1447,9 @@ function priorityLabel(p) {
 function ownerClass(name) {
   return {Jürgen:'owner-j', Wolfgang:'owner-w', Roman:'owner-r', Marc:'owner-m'}[name] || 'owner-j';
 }
+function artClass(name) {
+  return {Konstruktion:'art-konstruktion', Montage:'art-montage', Vertrieb:'art-vertrieb', Allgemein:'art-allgemein'}[name] || 'art-allgemein';
+}
 function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -1459,7 +1491,7 @@ function highlight(text, query) {
 function taskMatchesSearch(t, query) {
   if (!query) return true;
   const fields = [
-    t.title, t.desc, t.owner,
+    t.title, t.desc, t.owner, t.art,
     t.priority ? ({low:'Niedrig',medium:'Mittel',high:'Hoch',urgent:'Dringend'}[t.priority] || '') : '',
     COL_LABELS[t.col] || '',
     t.date || '',
@@ -1474,14 +1506,15 @@ function applyFilters() {
   const owner    = document.getElementById('f-owner').value;
   const priority = document.getElementById('f-priority').value;
   const col      = document.getElementById('f-col').value;
+  const art      = document.getElementById('f-art').value;
   const dateFrom = document.getElementById('f-date-from').value;
   const dateTo   = document.getElementById('f-date-to').value;
   const query    = searchQuery;
 
-  const hasFilter = owner || priority || col || dateFrom || dateTo || query;
+  const hasFilter = owner || priority || col || art || dateFrom || dateTo || query;
 
   // Update select visual state
-  ['f-owner','f-priority','f-col'].forEach(id => {
+  ['f-owner','f-priority','f-col','f-art'].forEach(id => {
     const el = document.getElementById(id);
     el.classList.toggle('active', !!el.value);
   });
@@ -1506,6 +1539,7 @@ function applyFilters() {
     if (owner    && t.owner    !== owner)    show = false;
     if (priority && t.priority !== priority) show = false;
     if (col      && t.col      !== col)      show = false;
+    if (art      && t.art      !== art)      show = false;
     if (dateFrom && (!t.date || t.date < dateFrom)) show = false;
     if (dateTo   && (!t.date || t.date > dateTo))   show = false;
     if (query    && !taskMatchesSearch(t, query))    show = false;
@@ -1534,7 +1568,7 @@ function applyFilters() {
 }
 
 function resetFilters() {
-  ['f-owner','f-priority','f-col'].forEach(id => {
+  ['f-owner','f-priority','f-col','f-art'].forEach(id => {
     document.getElementById(id).value = '';
     document.getElementById(id).classList.remove('active');
   });
