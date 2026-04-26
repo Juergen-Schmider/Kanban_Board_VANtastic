@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "exportedAt": "2026-04-26T18:32:18.945Z",
+  "exportedAt": "2026-04-26T18:33:43.227Z",
   "tasks": [
     {
       "id": 1,
@@ -81,7 +81,9 @@
       "date": "2026-06-10",
       "images": [],
       "pdfs": [],
-      "created": 1776590628127
+      "created": 1776590628127,
+      "owner": "",
+      "art": "Vertrieb"
     },
     {
       "id": 7,
@@ -209,6 +211,14 @@
   "nextId": 17,
   "activityLog": [
     {
+      "text": "\"Unit-Tests erweitern\" bearbeitet",
+      "time": "2026-04-26T18:33:29.462Z"
+    },
+    {
+      "text": "Zu GitHub synchronisiert",
+      "time": "2026-04-26T18:32:21.167Z"
+    },
+    {
       "text": "\"TEST_17:24\" bearbeitet",
       "time": "2026-04-26T18:32:08.028Z"
     },
@@ -231,14 +241,6 @@
     {
       "text": "\"Test\" → Erledigt",
       "time": "2026-04-26T15:24:23.453Z"
-    },
-    {
-      "text": "\"Test\" hinzugefügt",
-      "time": "2026-04-26T14:53:12.503Z"
-    },
-    {
-      "text": "\"cvbbbd\" → Offen",
-      "time": "2026-04-26T14:25:04.072Z"
     }
   ]
 }
