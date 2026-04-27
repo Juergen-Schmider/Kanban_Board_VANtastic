@@ -340,6 +340,7 @@
     <option value="Anfrage">Anfrage</option>
     <option value="Auftrag erhalten">Auftrag erhalten</option>
     <option value="Absage">Absage</option>
+    <option value="Reklamation">Reklamation</option>
   </select>
 
   <div class="filter-sep"></div>
@@ -1596,7 +1597,7 @@ function ownerClass(name) {
   return {Jürgen:'owner-j', Wolfgang:'owner-w', Roman:'owner-r', Marc:'owner-m'}[name] || 'owner-j';
 }
 function kundeClass(name) {
-  return {'Anfrage':'kunde-anfrage','Auftrag erhalten':'kunde-auftrag','Absage':'kunde-absage'}[name] || 'kunde-anfrage';
+  return {'Anfrage':'kunde-anfrage','Auftrag erhalten':'kunde-auftrag','Absage':'kunde-absage','Reklamation':'kunde-reklamation'}[name] || 'kunde-anfrage';
 }
 function artClass(name) {
   return {Konstruktion:'art-konstruktion', Montage:'art-montage', Vertrieb:'art-vertrieb', Homepage:'art-homepage', Marketing:'art-marketing', Einkauf:'art-einkauf', Allgemein:'art-allgemein'}[name] || 'art-allgemein';
