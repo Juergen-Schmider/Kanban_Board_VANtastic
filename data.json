@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "exportedAt": "2026-04-27T08:00:55.014Z",
+  "exportedAt": "2026-04-27T08:07:42.559Z",
   "tasks": [
     {
       "id": 1,
@@ -232,41 +232,80 @@
       ],
       "pdfs": [],
       "created": 1777276829101
-    }
-  ],
-  "nextId": 18,
-  "activityLog": [
-    {
-      "text": "\"Tisch in MFB integrieren\" hinzugefügt",
-      "time": "2026-04-27T08:00:29.101Z"
     },
     {
-      "text": "\"Unit-Tests erweitern\" bearbeitet",
-      "time": "2026-04-26T18:33:29.462Z"
+      "id": 18,
+      "title": "Auftragsbearbeitung/Arbeitsvorbereitung Tool",
+      "desc": "",
+      "priority": "medium",
+      "col": "backlog",
+      "date": "",
+      "owner": "Jürgen",
+      "art": "",
+      "images": [],
+      "pdfs": [],
+      "created": 1777277125921
+    },
+    {
+      "id": 19,
+      "title": "Montagebeschreibung App",
+      "desc": "",
+      "priority": "medium",
+      "col": "backlog",
+      "date": "",
+      "owner": "",
+      "art": "",
+      "images": [],
+      "pdfs": [],
+      "created": 1777277200611
+    },
+    {
+      "id": 20,
+      "title": "Lagerverwaltung mit Barcode Hersteller Scanner",
+      "desc": "",
+      "priority": "medium",
+      "col": "backlog",
+      "date": "",
+      "owner": "Jürgen",
+      "art": "",
+      "images": [],
+      "pdfs": [],
+      "created": 1777277252468
+    }
+  ],
+  "nextId": 21,
+  "activityLog": [
+    {
+      "text": "\"Lagerverwaltung mit Barcode Hersteller Scanner\" hinzugefügt",
+      "time": "2026-04-27T08:07:32.468Z"
+    },
+    {
+      "text": "\"Montagebeschreibung App\" hinzugefügt",
+      "time": "2026-04-27T08:06:40.611Z"
+    },
+    {
+      "text": "\"Auftragsbearbeitung/Arbeitsvorbereitung Tool\" hinzugefügt",
+      "time": "2026-04-27T08:05:25.921Z"
+    },
+    {
+      "text": "\"Tisch in MFB integrieren\" → Backlog",
+      "time": "2026-04-27T08:04:11.170Z"
+    },
+    {
+      "text": "\"Tisch in MFB integrieren\" bearbeitet",
+      "time": "2026-04-27T08:01:55.545Z"
+    },
+    {
+      "text": "\"Tisch in MFB integrieren\" → Review",
+      "time": "2026-04-27T08:01:18.410Z"
     },
     {
       "text": "Zu GitHub synchronisiert",
-      "time": "2026-04-26T18:32:21.167Z"
+      "time": "2026-04-27T08:01:00.451Z"
     },
     {
-      "text": "\"TEST_17:24\" bearbeitet",
-      "time": "2026-04-26T18:32:08.028Z"
-    },
-    {
-      "text": "\"Test_18:04\" hinzugefügt",
-      "time": "2026-04-26T16:05:16.165Z"
-    },
-    {
-      "text": "\"TEST_18:03\" hinzugefügt",
-      "time": "2026-04-26T16:03:34.583Z"
-    },
-    {
-      "text": "\"TEST_17:24\" bearbeitet",
-      "time": "2026-04-26T15:30:06.925Z"
-    },
-    {
-      "text": "\"TEST_17:24\" hinzugefügt",
-      "time": "2026-04-26T15:24:44.294Z"
+      "text": "\"Tisch in MFB integrieren\" hinzugefügt",
+      "time": "2026-04-27T08:00:29.101Z"
     }
   ]
 }
