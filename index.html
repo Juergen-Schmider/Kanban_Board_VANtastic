@@ -914,17 +914,44 @@ function init() {
 
   // Try to load from data.json first (auto-sync from GitHub)
   // This runs synchronously-ish via a flag; if data.json exists it's preferred over localStorage
-  tryLoadDataJson(function(dataLoaded){
-    const loaded = dataLoaded || loadFromStorage(true);
-    if (!loaded) {
-      // First run — load sample data
-      SAMPLE.forEach(s => {
-        tasks.push({id:nextId++, title:s.title, desc:s.desc, priority:s.priority,
-                    col:s.col, date:s.date, images:[], pdfs:[],
-                    created: NOW - s.daysAgo * DAY});
-      });
-      saveToStorage();
+  tryLoadDataJson(async function(dataLoaded, withInlineAttachments){
+    if (!dataLoaded) {
+      const lsLoaded = loadFromStorage(true);
+      if (!lsLoaded) {
+        // First run — load sample data
+        SAMPLE.forEach(s => {
+          tasks.push({id:nextId++, title:s.title, desc:s.desc, priority:s.priority,
+                      col:s.col, date:s.date, images:[], pdfs:[],
+                      created: NOW - s.daysAgo * DAY});
+        });
+        saveToStorage();
+      }
     }
+
+    try {
+      if (withInlineAttachments) {
+        // data.json had inline images → migrate them to IDB
+        await idbDeleteAll();
+        attachmentCache = {};
+        for (const t of tasks) {
+          if ((t.images && t.images.length) || (t.pdfs && t.pdfs.length)) {
+            await idbSave(t.id, t.images || [], t.pdfs || []);
+            attachmentCache[t.id] = {taskId: t.id, images: t.images || [], pdfs: t.pdfs || []};
+          }
+        }
+      } else {
+        // Load attachments from IDB and merge into tasks
+        attachmentCache = await idbLoadAll();
+        tasks.forEach(t => {
+          const att = attachmentCache[t.id];
+          t.images = att ? (att.images || []) : (t.images || []);
+          t.pdfs   = att ? (att.pdfs   || []) : (t.pdfs   || []);
+        });
+      }
+    } catch(e) {
+      console.warn('IDB init error:', e);
+    }
+
     renderAll();
     initCharts();
     initRangePicker();
@@ -951,13 +978,22 @@ function tryLoadDataJson(callback) {
       nextId = data.nextId || (tasks.length ? Math.max.apply(null, tasks.map(function(t){return t.id;})) + 1 : 1);
       activityLog = (data.activityLog || []).map(function(a){ return Object.assign({}, a, {time: new Date(a.time)}); });
       lastSaved = data.exportedAt ? new Date(data.exportedAt) : null;
-      try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch(e) {}
+      // tasks[].images and tasks[].pdfs come from data.json directly.
+      // Init() will move them to IDB after this returns.
+      try {
+        // Save text-only snapshot to localStorage (saveToStorage strips images)
+        var lsCopy = {tasks: tasks.map(function(t){var c=Object.assign({},t); delete c.images; delete c.pdfs; return c;}),
+                      nextId: nextId,
+                      activityLog: data.activityLog || [],
+                      savedAt: new Date().toISOString()};
+        localStorage.setItem(LS_KEY, JSON.stringify(lsCopy));
+      } catch(e) {}
       setTimeout(function(){ showToast('\u2713 ' + tasks.length + ' Aufgaben aus data.json geladen', 'success', 2500); }, 400);
-      callback(true);
+      callback(true, true); // second arg: data came WITH attachments inline
     })
     .catch(function(){
       // No data.json available — fall back to localStorage / samples
-      callback(false);
+      callback(false, false);
     });
 }
 
@@ -1140,12 +1176,17 @@ function saveTask() {
       t.title = title; t.desc = desc; t.priority = priority;
       t.col = col; t.date = date; t.owner = owner; t.art = art; t.bestellung = bestellung; t.kunde = kunde; t.link = link;
       t.images = pendingImages.slice(); t.pdfs = pendingPdfs.slice();
+      idbSave(t.id, t.images, t.pdfs);
+      attachmentCache[t.id] = {taskId: t.id, images: t.images, pdfs: t.pdfs};
       addActivity(`"${title}" bearbeitet`);
     }
   } else {
-    tasks.push({id:nextId++, title, desc, priority, col, date, owner, art, bestellung, kunde, link,
+    const _newTask = {id:nextId++, title, desc, priority, col, date, owner, art, bestellung, kunde, link,
                 images: pendingImages.slice(), pdfs: pendingPdfs.slice(),
-                created: Date.now()});
+                created: Date.now()};
+    tasks.push(_newTask);
+    idbSave(_newTask.id, _newTask.images, _newTask.pdfs);
+    attachmentCache[_newTask.id] = {taskId: _newTask.id, images: _newTask.images, pdfs: _newTask.pdfs};
     addActivity(`"${title}" hinzugefügt`);
   }
   pendingImages = []; pendingPdfs = [];
@@ -1197,7 +1238,13 @@ function ctxEdit() {
 }
 function ctxDelete() {
   const t = tasks.find(x => x.id === ctxTaskId);
-  if (t) { tasks = tasks.filter(x => x.id !== ctxTaskId); addActivity(`"${t.title}" gelöscht`); renderAll(); }
+  if (t) {
+    tasks = tasks.filter(x => x.id !== ctxTaskId);
+    idbDelete(ctxTaskId);
+    delete attachmentCache[ctxTaskId];
+    addActivity(`"${t.title}" gelöscht`);
+    renderAll();
+  }
   closeCtx();
 }
 
@@ -1757,6 +1804,73 @@ function resetFilters() {
 
 /* ─── LOCALSTORAGE ──────────────────────────────────── */
 const LS_KEY = 'flow-dashboard-v1';
+
+/* ─── INDEXEDDB FOR IMAGES & PDFS ─────────────────────
+   Stores attachments separately from localStorage.
+   No 5 MB limit — browsers allow hundreds of MB.
+──────────────────────────────────────────────────────── */
+const IDB_NAME  = 'flow-attachments-v1';
+const IDB_STORE = 'attachments';
+let   _idbConn  = null;
+
+function idbOpen() {
+  return new Promise((resolve, reject) => {
+    if (_idbConn) { resolve(_idbConn); return; }
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = e => {
+      e.target.result.createObjectStore(IDB_STORE, { keyPath: 'taskId' });
+    };
+    req.onsuccess = e => { _idbConn = e.target.result; resolve(_idbConn); };
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+async function idbSave(taskId, images, pdfs) {
+  try {
+    const db = await idbOpen();
+    return new Promise((res, rej) => {
+      const tx = db.transaction(IDB_STORE, 'readwrite');
+      tx.objectStore(IDB_STORE).put({ taskId, images: images||[], pdfs: pdfs||[] });
+      tx.oncomplete = res; tx.onerror = e => rej(e.target.error);
+    });
+  } catch(e) { console.warn('IDB save:', e); }
+}
+async function idbLoadAll() {
+  try {
+    const db = await idbOpen();
+    return new Promise(resolve => {
+      const req = db.transaction(IDB_STORE,'readonly').objectStore(IDB_STORE).getAll();
+      req.onsuccess = e => {
+        const map = {};
+        (e.target.result||[]).forEach(r => { map[r.taskId] = r; });
+        resolve(map);
+      };
+      req.onerror = () => resolve({});
+    });
+  } catch(e) { return {}; }
+}
+async function idbDelete(taskId) {
+  try {
+    const db = await idbOpen();
+    return new Promise(resolve => {
+      const tx = db.transaction(IDB_STORE,'readwrite');
+      tx.objectStore(IDB_STORE).delete(taskId);
+      tx.oncomplete = resolve; tx.onerror = resolve;
+    });
+  } catch(e) {}
+}
+async function idbDeleteAll() {
+  try {
+    const db = await idbOpen();
+    return new Promise(resolve => {
+      const tx = db.transaction(IDB_STORE,'readwrite');
+      tx.objectStore(IDB_STORE).clear();
+      tx.oncomplete = resolve; tx.onerror = resolve;
+    });
+  } catch(e) {}
+}
+// In-memory cache: populated at startup from IDB
+let attachmentCache = {};
+
 let saveTimer = null;
 let lastSaved = null;
 
@@ -1768,8 +1882,14 @@ function scheduleSave() {
 
 function saveToStorage() {
   try {
+    // Strip images/pdfs from tasks before saving to localStorage
+    // Attachments live in IndexedDB (no size limit)
+    const tasksClean = tasks.map(t => {
+      const {images, pdfs, ...rest} = t;
+      return rest;
+    });
     const payload = JSON.stringify({
-      tasks,
+      tasks: tasksClean,
       nextId,
       activityLog: activityLog.map(a => ({...a, time: a.time.toISOString()})),
       savedAt: new Date().toISOString()
@@ -1780,11 +1900,7 @@ function saveToStorage() {
     updateSyncBar();
   } catch(e) {
     setSyncDot('');
-    if (e.name === 'QuotaExceededError') {
-      showToast('⚠ Speicher voll! Exportiere Daten und lösche Bilder/PDFs.', 'warn', 5000);
-    } else {
-      showToast('Speicherfehler: ' + e.message, 'error');
-    }
+    showToast('Speicherfehler: ' + e.message, 'error');
   }
 }
 
@@ -1979,13 +2095,16 @@ async function pushToGitHub() {
 
   try {
     // Build payload
-    const payload = {
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      tasks: tasks,
-      nextId: nextId,
-      activityLog: activityLog.map(a => ({text: a.text, time: a.time.toISOString()}))
-    };
+    // Merge IDB attachments into tasks for sync
+  const _tasksForSync = tasks.map(t => {
+    const att = attachmentCache[t.id] || {images:[], pdfs:[]};
+    return Object.assign({}, t, {images: att.images||[], pdfs: att.pdfs||[]});
+  });
+  const payload = {
+    tasks: _tasksForSync,
+    nextId: nextId,
+    activityLog: activityLog.map(a => ({text: a.text, time: a.time.toISOString()}))
+  };
     const content = JSON.stringify(payload, null, 2);
     const contentB64 = btoa(unescape(encodeURIComponent(content)));
 
@@ -2065,6 +2184,15 @@ async function pullFromGitHub() {
     tasks = data.tasks;
     nextId = data.nextId || (tasks.length ? Math.max(...tasks.map(t=>t.id)) + 1 : 1);
     activityLog = (data.activityLog || []).map(a => ({...a, time: new Date(a.time)}));
+    // Restore attachments to IDB
+    await idbDeleteAll();
+    attachmentCache = {};
+    for (const t of tasks) {
+      if ((t.images && t.images.length) || (t.pdfs && t.pdfs.length)) {
+        await idbSave(t.id, t.images || [], t.pdfs || []);
+        attachmentCache[t.id] = {taskId: t.id, images: t.images || [], pdfs: t.pdfs || []};
+      }
+    }
     saveToStorage();
     renderAll();
     closeSyncModal();
@@ -2077,11 +2205,16 @@ async function pullFromGitHub() {
 }
 
 /* ─── EXPORT ─────────────────────────────────────────── */
-function exportJSON() {
+async function exportJSON() {
+  // Merge attachments from IDB cache into tasks for export
+  const tasksWithAttachments = tasks.map(t => {
+    const att = attachmentCache[t.id] || {images:[], pdfs:[]};
+    return {...t, images: att.images || [], pdfs: att.pdfs || []};
+  });
   const payload = {
     version: 1,
     exportedAt: new Date().toISOString(),
-    tasks,
+    tasks: tasksWithAttachments,
     nextId,
     activityLog: activityLog.map(a => ({...a, time: a.time.toISOString()}))
   };
@@ -2090,25 +2223,24 @@ function exportJSON() {
     'application/json',
     'flow-dashboard-' + dateStamp() + '.json'
   );
-  showToast('✓ JSON exportiert', 'success');
+  showToast('\u2713 JSON exportiert', 'success');
 }
 
-function exportHTMLWithData() {
+async function exportHTMLWithData() {
   closeSyncModal();
-  // NEW STRATEGY: Export a separate data.json file
-  // The dashboard automatically loads data.json from the same folder on startup
-  // This avoids embedding large base64 in HTML which breaks Safari parsing
+  const tasksWithAttachments = tasks.map(t => {
+    const att = attachmentCache[t.id] || {images:[], pdfs:[]};
+    return Object.assign({}, t, {images: att.images||[], pdfs: att.pdfs||[]});
+  });
   var payload = {
     version: 1,
     exportedAt: new Date().toISOString(),
-    tasks: tasks,
+    tasks: tasksWithAttachments,
     nextId: nextId,
-    activityLog: activityLog.map(function(a){
-      return {text: a.text, time: a.time.toISOString()};
-    })
+    activityLog: activityLog.map(function(a){ return {text: a.text, time: a.time.toISOString()}; })
   };
   downloadFile(JSON.stringify(payload, null, 2), 'application/json', 'data.json');
-  showToast('\u2713 data.json exportiert — auf GitHub neben index.html hochladen', 'success', 5000);
+  showToast('\u2713 data.json exportiert — auf GitHub hochladen', 'success', 5000);
 }
 
 /* ─── IMPORT ─────────────────────────────────────────── */
@@ -2116,7 +2248,7 @@ function importJSON(input) {
   const file = input.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = e => {
+  reader.onload = async (e) => {
     try {
       const data = JSON.parse(e.target.result);
       if (!data.tasks || !Array.isArray(data.tasks))
@@ -2124,6 +2256,15 @@ function importJSON(input) {
       tasks = data.tasks;
       nextId = data.nextId || (tasks.length ? Math.max(...tasks.map(t=>t.id)) + 1 : 1);
       activityLog = (data.activityLog || []).map(a => ({...a, time: new Date(a.time)}));
+      // Restore attachments to IDB
+      await idbDeleteAll();
+      attachmentCache = {};
+      for (const t of tasks) {
+        if ((t.images && t.images.length) || (t.pdfs && t.pdfs.length)) {
+          await idbSave(t.id, t.images || [], t.pdfs || []);
+          attachmentCache[t.id] = {taskId: t.id, images: t.images || [], pdfs: t.pdfs || []};
+        }
+      }
       saveToStorage();
       renderAll();
       closeSyncModal();
@@ -2140,6 +2281,8 @@ function importJSON(input) {
 function clearAllData() {
   if (!confirm('Wirklich ALLE Daten löschen? Diese Aktion kann nicht rückgängig gemacht werden.')) return;
   tasks = []; nextId = 1; activityLog = []; lastSaved = null;
+  attachmentCache = {};
+  idbDeleteAll();
   localStorage.removeItem(LS_KEY);
   renderAll();
   updateSyncBar();
