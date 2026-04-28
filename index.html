@@ -2094,65 +2094,153 @@ async function pushToGitHub() {
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Lade hoch…'; }
 
   try {
-    // Build payload
     // Merge IDB attachments into tasks for sync
-  const _tasksForSync = tasks.map(t => {
-    const att = attachmentCache[t.id] || {images:[], pdfs:[]};
-    return Object.assign({}, t, {images: att.images||[], pdfs: att.pdfs||[]});
-  });
-  const payload = {
-    tasks: _tasksForSync,
-    nextId: nextId,
-    activityLog: activityLog.map(a => ({text: a.text, time: a.time.toISOString()}))
-  };
+    const _tasksForSync = tasks.map(t => {
+      const att = attachmentCache[t.id] || {images:[], pdfs:[]};
+      return {...t, images: att.images || [], pdfs: att.pdfs || []};
+    });
+    const payload = {
+      tasks: _tasksForSync,
+      nextId: nextId,
+      activityLog: activityLog.map(a => ({text: a.text, time: a.time.toISOString()}))
+    };
     const content = JSON.stringify(payload, null, 2);
-    const contentB64 = btoa(unescape(encodeURIComponent(content)));
-
-    const apiUrl = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURIComponent(cfg.path)}`;
+    const sizeKB  = Math.round(new Blob([content]).size / 1024);
     const headers = {
       'Authorization': 'token ' + cfg.token,
       'Accept': 'application/vnd.github+json',
       'Content-Type': 'application/json'
     };
 
-    // Step 1: Get current SHA of the file (needed for update)
-    let sha = null;
-    try {
-      const getRes = await fetch(apiUrl + '?ref=' + cfg.branch, { headers });
-      if (getRes.ok) {
-        const getData = await getRes.json();
-        sha = getData.sha;
+    // Files > ~900 KB use Git Data API (handles up to 100 MB)
+    // Below threshold use simpler Contents API
+    const useGitDataApi = sizeKB > 900;
+
+    if (!useGitDataApi) {
+      // === SIMPLE PATH: Contents API ===
+      if (btn) btn.textContent = '⏳ Lade hoch (' + sizeKB + ' KB)…';
+      const apiUrl = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURIComponent(cfg.path)}`;
+      const contentB64 = btoa(unescape(encodeURIComponent(content)));
+
+      let sha = null;
+      try {
+        const getRes = await fetch(apiUrl + '?ref=' + cfg.branch, { headers });
+        if (getRes.ok) sha = (await getRes.json()).sha;
+      } catch(e) {}
+
+      const body = {
+        message: 'Update ' + cfg.path + ' from VANtastic Kanban (' + new Date().toLocaleString('de-DE') + ')',
+        content: contentB64,
+        branch: cfg.branch
+      };
+      if (sha) body.sha = sha;
+
+      const putRes = await fetch(apiUrl, { method: 'PUT', headers, body: JSON.stringify(body) });
+      if (!putRes.ok) {
+        const errData = await putRes.json().catch(() => ({}));
+        // If "too large" — retry with Git Data API
+        if (putRes.status === 413 || (errData.message && errData.message.toLowerCase().includes('too large'))) {
+          await pushViaGitDataApi(cfg, content, headers, btn);
+        } else {
+          throw new Error(errData.message || 'HTTP ' + putRes.status);
+        }
+      } else {
+        showToast('\u2713 Erfolgreich gepusht (' + tasks.length + ' Aufgaben, ' + sizeKB + ' KB)', 'success', 4000);
+        addActivity('Zu GitHub synchronisiert');
+        closeSyncModal();
       }
-      // 404 = file doesn't exist yet, that's fine
-    } catch(e) { /* ignore */ }
-
-    // Step 2: PUT the new content
-    const body = {
-      message: 'Update data.json from VANtastic Kanban (' + new Date().toLocaleString('de-DE') + ')',
-      content: contentB64,
-      branch: cfg.branch
-    };
-    if (sha) body.sha = sha;
-
-    const putRes = await fetch(apiUrl, {
-      method: 'PUT',
-      headers,
-      body: JSON.stringify(body)
-    });
-
-    if (!putRes.ok) {
-      const errData = await putRes.json().catch(() => ({}));
-      throw new Error(errData.message || ('HTTP ' + putRes.status));
+    } else {
+      // === LARGE FILE PATH: Git Data API (up to 100 MB) ===
+      await pushViaGitDataApi(cfg, content, headers, btn);
     }
-
-    showToast('\u2713 Erfolgreich zu GitHub gepusht (' + tasks.length + ' Aufgaben)', 'success', 4000);
-    addActivity('Zu GitHub synchronisiert');
-    closeSyncModal();
   } catch(err) {
-    showToast('Push fehlgeschlagen: ' + err.message, 'error', 6000);
+    showToast('Push fehlgeschlagen: ' + err.message, 'error', 7000);
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '⬆ Jetzt zu GitHub pushen'; }
   }
+}
+
+async function pushViaGitDataApi(cfg, content, headers, btn) {
+  const sizeKB = Math.round(new Blob([content]).size / 1024);
+  const sizeStr = sizeKB > 1024 ? (sizeKB/1024).toFixed(1) + ' MB' : sizeKB + ' KB';
+  const repoBase = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}`;
+
+  // Step 1: Create blob with file content
+  if (btn) btn.textContent = '⏳ Erstelle Blob (' + sizeStr + ')…';
+  const blobRes = await fetch(repoBase + '/git/blobs', {
+    method: 'POST', headers,
+    body: JSON.stringify({
+      content: btoa(unescape(encodeURIComponent(content))),
+      encoding: 'base64'
+    })
+  });
+  if (!blobRes.ok) {
+    const e = await blobRes.json().catch(()=>({}));
+    throw new Error('Blob-Erstellung: ' + (e.message || blobRes.status));
+  }
+  const blobSha = (await blobRes.json()).sha;
+
+  // Step 2: Get current branch HEAD commit
+  if (btn) btn.textContent = '⏳ Lese Branch…';
+  const refRes = await fetch(repoBase + '/git/ref/heads/' + cfg.branch, { headers });
+  if (!refRes.ok) throw new Error('Branch nicht gefunden: ' + cfg.branch);
+  const headSha = (await refRes.json()).object.sha;
+
+  // Step 3: Get the tree from that commit
+  const commitRes = await fetch(repoBase + '/git/commits/' + headSha, { headers });
+  if (!commitRes.ok) throw new Error('Commit nicht lesbar');
+  const baseTreeSha = (await commitRes.json()).tree.sha;
+
+  // Step 4: Create new tree referencing the blob
+  if (btn) btn.textContent = '⏳ Erstelle Tree…';
+  const treeRes = await fetch(repoBase + '/git/trees', {
+    method: 'POST', headers,
+    body: JSON.stringify({
+      base_tree: baseTreeSha,
+      tree: [{
+        path: cfg.path,
+        mode: '100644',
+        type: 'blob',
+        sha: blobSha
+      }]
+    })
+  });
+  if (!treeRes.ok) {
+    const e = await treeRes.json().catch(()=>({}));
+    throw new Error('Tree-Erstellung: ' + (e.message || treeRes.status));
+  }
+  const newTreeSha = (await treeRes.json()).sha;
+
+  // Step 5: Create commit
+  if (btn) btn.textContent = '⏳ Erstelle Commit…';
+  const newCommitRes = await fetch(repoBase + '/git/commits', {
+    method: 'POST', headers,
+    body: JSON.stringify({
+      message: 'Update ' + cfg.path + ' from VANtastic Kanban (' + new Date().toLocaleString('de-DE') + ')',
+      tree: newTreeSha,
+      parents: [headSha]
+    })
+  });
+  if (!newCommitRes.ok) {
+    const e = await newCommitRes.json().catch(()=>({}));
+    throw new Error('Commit-Erstellung: ' + (e.message || newCommitRes.status));
+  }
+  const newCommitSha = (await newCommitRes.json()).sha;
+
+  // Step 6: Update branch ref
+  if (btn) btn.textContent = '⏳ Update Branch…';
+  const updateRes = await fetch(repoBase + '/git/refs/heads/' + cfg.branch, {
+    method: 'PATCH', headers,
+    body: JSON.stringify({ sha: newCommitSha, force: false })
+  });
+  if (!updateRes.ok) {
+    const e = await updateRes.json().catch(()=>({}));
+    throw new Error('Branch-Update: ' + (e.message || updateRes.status));
+  }
+
+  showToast('\u2713 Erfolgreich gepusht (' + tasks.length + ' Aufgaben, ' + sizeStr + ')', 'success', 4000);
+  addActivity('Zu GitHub synchronisiert (' + sizeStr + ')');
+  closeSyncModal();
 }
 
 async function pullFromGitHub() {
@@ -2165,19 +2253,41 @@ async function pullFromGitHub() {
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Lade…'; }
 
   try {
-    const apiUrl = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURIComponent(cfg.path)}?ref=${cfg.branch}`;
-    const res = await fetch(apiUrl, {
-      headers: {
-        'Authorization': 'token ' + cfg.token,
-        'Accept': 'application/vnd.github+json'
-      }
-    });
-    if (!res.ok) {
-      if (res.status === 404) throw new Error('data.json existiert noch nicht auf GitHub');
-      throw new Error('HTTP ' + res.status);
+    const headers = {
+      'Authorization': 'token ' + cfg.token,
+      'Accept': 'application/vnd.github+json'
+    };
+    let content = null;
+
+    // Step 1: Get file metadata (works for files up to 100 MB, but content
+    // is only included if file < 1 MB)
+    const metaUrl = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURIComponent(cfg.path)}?ref=${cfg.branch}`;
+    const metaRes = await fetch(metaUrl, { headers });
+    if (!metaRes.ok) {
+      if (metaRes.status === 404) throw new Error('data.json existiert noch nicht auf GitHub');
+      throw new Error('HTTP ' + metaRes.status);
     }
-    const meta = await res.json();
-    const content = decodeURIComponent(escape(atob(meta.content.replace(/\s/g, ''))));
+    const meta = await metaRes.json();
+
+    if (meta.content && meta.encoding === 'base64') {
+      // Small file: content is included in metadata
+      content = decodeURIComponent(escape(atob(meta.content.replace(/\s/g, ''))));
+    } else if (meta.sha) {
+      // Large file: fetch the blob via Git Data API
+      if (btn) btn.textContent = '⏳ Lade Blob…';
+      const blobUrl = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/git/blobs/${meta.sha}`;
+      const blobRes = await fetch(blobUrl, { headers });
+      if (!blobRes.ok) throw new Error('Blob-Download fehlgeschlagen: HTTP ' + blobRes.status);
+      const blob = await blobRes.json();
+      if (blob.encoding === 'base64') {
+        content = decodeURIComponent(escape(atob(blob.content.replace(/\s/g, ''))));
+      } else {
+        content = blob.content;
+      }
+    } else {
+      throw new Error('Datei-Inhalt nicht verfügbar');
+    }
+
     const data = JSON.parse(content);
     if (!data.tasks || !Array.isArray(data.tasks)) throw new Error('Ungültiges Format');
 
