@@ -282,6 +282,32 @@
   ::-webkit-scrollbar{width:5px;height:5px;}
   ::-webkit-scrollbar-track{background:transparent;}
   ::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px;}
+
+  /* ── HISTORIE ── */
+  .task-history{margin:6px 0 4px;border-top:1px solid var(--border);padding-top:6px;}
+  .task-history-title{font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-dim);margin-bottom:4px;}
+  .task-history-entries{max-height:calc(1.45em * 5 + 8px);overflow-y:auto;display:flex;flex-direction:column;gap:3px;
+    scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
+  .task-history-entries::-webkit-scrollbar{width:3px;}
+  .task-history-entries::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+  .history-entry{font-size:10px;color:var(--text-muted);line-height:1.45;border-left:2px solid var(--border);padding-left:6px;}
+  .history-entry .h-date{font-size:9px;color:var(--text-dim);margin-right:4px;white-space:nowrap;}
+  .modal-history-box{background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:10px;margin-top:4px;}
+  .modal-history-list{max-height:calc(1.5em * 5 + 16px);overflow-y:auto;display:flex;flex-direction:column;
+    gap:4px;margin-bottom:10px;scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
+  .modal-history-list::-webkit-scrollbar{width:3px;}
+  .modal-history-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+  .modal-history-entry{font-size:11px;color:var(--text-muted);line-height:1.5;border-left:2px solid var(--border);padding-left:7px;}
+  .modal-history-entry .h-date{font-size:10px;color:var(--accent);margin-right:5px;}
+  .modal-history-entry:first-child{border-left-color:var(--accent);}
+  .new-history-row{display:flex;gap:6px;align-items:flex-start;}
+  .new-history-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;
+    padding:6px 10px;color:var(--text);font-size:11px;resize:vertical;min-height:34px;font-family:inherit;}
+  .new-history-input:focus{outline:none;border-color:var(--accent);}
+  .btn-history-confirm{background:var(--accent);border:none;color:#0f0e0c;border-radius:6px;
+    padding:6px 10px;cursor:pointer;font-size:14px;line-height:1;flex-shrink:0;transition:opacity 0.15s;}
+  .btn-history-confirm:hover{opacity:0.85;}
+  .btn-history-add{font-size:11px;padding:4px 10px;margin-top:6px;}
 </style>
 </head>
 <body>
@@ -555,6 +581,21 @@
       <label class="form-label">Beschreibung</label>
       <textarea class="form-textarea" id="field-desc" placeholder="Details zur Aufgabe…"></textarea>
     </div>
+
+    <div class="form-group">
+      <label class="form-label">Historie</label>
+      <div class="modal-history-box">
+        <div class="modal-history-list" id="modal-history-list">
+          <div style="font-size:10px;color:var(--text-dim);padding:2px 0;">Noch keine Einträge.</div>
+        </div>
+        <div style="display:none;" id="new-history-row" class="new-history-row">
+          <textarea class="new-history-input" id="new-history-input" placeholder="Neuer Eintrag…" rows="2"></textarea>
+          <button class="btn-history-confirm" onclick="confirmHistoryEntry()" title="Eintrag bestätigen">✓</button>
+        </div>
+        <button class="btn btn-history-add" onclick="showNewHistoryInput()">+ Neuer Eintrag</button>
+      </div>
+    </div>
+
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Priorität</label>
@@ -1076,6 +1117,15 @@ function makeCard(t) {
       <button class="task-menu" onclick="openCtx(event,${t.id})">⋯</button>
     </div>
     ${t.desc ? `<div class="task-desc">${escHtml(t.desc)}</div>` : ''}
+    ${(t.history && t.history.length > 0) ? `
+    <div class="task-history">
+      <div class="task-history-title">Historie (${t.history.length})</div>
+      <div class="task-history-entries">
+        ${t.history.slice().reverse().map(h =>
+          `<div class="history-entry"><span class="h-date">${escHtml(h.date)}</span>${escHtml(h.text)}</div>`
+        ).join('')}
+      </div>
+    </div>` : ''}
     ${imgHtml}${pdfHtml}
     ${t.link ? `<div style="margin:5px 0 2px;">
       <a class="task-link" href="${escHtml(t.link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
@@ -1132,6 +1182,8 @@ function openAddModal(col) {
   document.getElementById('field-owner').value    = '';
   document.getElementById('field-art').value        = '';
   document.getElementById('field-bestellung').value = '';
+  pendingHistory = []; renderModalHistory();
+  const _nhr = document.getElementById('new-history-row'); if (_nhr) _nhr.style.display = 'none';
   document.getElementById('field-kunde').value    = '';
   document.getElementById('field-link').value     = '';
   document.getElementById('field-images').value   = '';
@@ -1165,6 +1217,7 @@ function saveTask() {
     if (t) {
       t.title = title; t.desc = desc; t.priority = priority;
       t.col = col; t.date = date; t.owner = owner; t.art = art; t.bestellung = bestellung; t.kunde = kunde; t.link = link;
+      t.history = pendingHistory.slice();
       t.images = pendingImages.slice(); t.pdfs = pendingPdfs.slice();
       idbSave(t.id, t.images, t.pdfs);
       attachmentCache[t.id] = {taskId: t.id, images: t.images, pdfs: t.pdfs};
@@ -1172,6 +1225,7 @@ function saveTask() {
     }
   } else {
     const _newTask = {id:nextId++, title, desc, priority, col, date, owner, art, bestellung, kunde, link,
+                history: pendingHistory.slice(),
                 images: pendingImages.slice(), pdfs: pendingPdfs.slice(),
                 created: Date.now()};
     tasks.push(_newTask);
@@ -1218,6 +1272,8 @@ function ctxEdit() {
     document.getElementById('field-art').value      = t.art   || '';
     document.getElementById('field-kunde').value    = t.kunde || '';
     document.getElementById('field-link').value     = t.link  || '';
+    pendingHistory = (t.history || []).slice(); renderModalHistory();
+    const _nhr = document.getElementById('new-history-row'); if (_nhr) _nhr.style.display = 'none';
     document.getElementById('field-images').value   = '';
     document.getElementById('field-pdfs').value     = '';
     resetPasteZone();
@@ -1405,14 +1461,14 @@ function togglePdfViewer(uid, taskId, idx) {
 
 /* ─── PREVIEWS ──────────────────────────────────────── */
 function renderPreviews() {
-  document.getElementById('img-previews').innerHTML =
+  const _ip = document.getElementById('img-previews'); if (_ip) _ip.innerHTML =
     pendingImages.map((img, i) => `
       <div class="img-thumb-wrap">
         <img src="${img.dataUrl}" alt="${escHtml(img.name)}">
         <button class="img-thumb-del" onclick="removePendingImg(${i})">✕</button>
       </div>`).join('');
 
-  document.getElementById('pdf-previews').innerHTML =
+  const _pp = document.getElementById('pdf-previews'); if (_pp) _pp.innerHTML =
     pendingPdfs.map((pdf, i) => `
       <div class="pdf-preview-item">
         <span class="pdf-icon">📄</span>
@@ -1446,13 +1502,15 @@ function updateStats() {
   const done     = tasks.filter(t => t.col === 'done').length;
   const progress = tasks.filter(t => t.col === 'progress').length;
   const urgent   = tasks.filter(t => t.priority === 'urgent' && t.col !== 'done').length;
-  document.getElementById('stat-total').textContent    = total;
-  document.getElementById('stat-done').textContent     = done;
-  document.getElementById('stat-progress').textContent = progress;
-  document.getElementById('stat-urgent').textContent   = urgent;
-  const pct = total > 0 ? Math.round(done / total * 100) : 0;
-  document.getElementById('pct-total').textContent  = pct + '%';
-  document.getElementById('bar-total').style.width  = pct + '%';
+  const pct      = total > 0 ? Math.round(done / total * 100) : 0;
+  function setTxt(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+  function setW(id, val)   { const el = document.getElementById(id); if (el) el.style.width  = val; }
+  setTxt('stat-total',    total);
+  setTxt('stat-done',     done);
+  setTxt('stat-progress', progress);
+  setTxt('stat-urgent',   urgent);
+  setTxt('pct-total',     pct + '%');
+  setW  ('bar-total',     pct + '%');
 }
 
 function updatePriorityBars() {
@@ -1468,7 +1526,8 @@ function updatePriorityBars() {
 /* ─── CHARTS ────────────────────────────────────────── */
 function initCharts() {
   // Donut — distribution
-  progressChart = new Chart(document.getElementById('progressChart').getContext('2d'), {
+  const pgCtx = document.getElementById('progressChart'); if (!pgCtx) return;
+  progressChart = new Chart(pgCtx.getContext('2d'), {
     type: 'doughnut',
     data: {
       labels: COLS.map(c => COL_LABELS[c]),
@@ -1524,7 +1583,7 @@ function initCharts() {
   });
 
   // Build legend
-  document.getElementById('chart-legend').innerHTML =
+  const _cl = document.getElementById('chart-legend'); if (_cl) _cl.innerHTML =
     COLS.map(col =>
       `<div class="legend-item">
          <div class="legend-dot" style="background:${COL_COLORS[col]}"></div>
@@ -1621,7 +1680,7 @@ function makeDropZone(id, handler) {
 function addActivity(text) {
   activityLog.unshift({text, time: new Date()});
   if (activityLog.length > 8) activityLog.pop();
-  document.getElementById('activity-list').innerHTML =
+  const _al = document.getElementById('activity-list'); if (_al) _al.innerHTML =
     activityLog.map(a => `
       <div class="activity-item">
         <div class="activity-dot"></div>
@@ -1684,7 +1743,7 @@ function clearSearch() {
   inp.value = '';
   inp.classList.remove('has-query');
   inp.focus();
-  document.getElementById('search-clear-btn').classList.remove('visible');
+  const _scb = document.getElementById('search-clear-btn'); if (_scb) _scb.classList.remove('visible');
   applyFilters();
 }
 
@@ -1794,8 +1853,8 @@ function resetFilters() {
   const clr = document.getElementById('search-clear-btn');
   if (clr) clr.classList.remove('visible');
 
-  document.getElementById('filter-reset-btn').classList.remove('has-filter');
-  document.getElementById('filter-count').textContent = '';
+  const _frb = document.getElementById('filter-reset-btn'); if (_frb) _frb.classList.remove('has-filter');
+  const _fc = document.getElementById('filter-count'); if (_fc) _fc.textContent = '';
   document.querySelectorAll('.task-card').forEach(card => {
     card.classList.remove('filter-hidden','search-hidden');
     // Restore original title/desc (no highlights)
@@ -2292,6 +2351,48 @@ async function pullFromSupabase(silent) {
 
 /* Compatibility: old function names still referenced from HTML */
 function updateGitHubStatus() { /* no-op, kept for compat */ }
+
+/* ─── HISTORIE ──────────────────────────────────────── */
+let pendingHistory = [];   // copy of task.history being edited in modal
+
+function renderModalHistory() {
+  const list = document.getElementById('modal-history-list');
+  if (!list) return;
+  if (pendingHistory.length === 0) {
+    list.innerHTML = '<div style="font-size:10px;color:var(--text-dim);padding:2px 0;">Noch keine Einträge.</div>';
+    return;
+  }
+  list.innerHTML = pendingHistory.slice().reverse().map((h, ri) => {
+    const i = pendingHistory.length - 1 - ri;
+    return `<div class="modal-history-entry">
+      <span class="h-date">${escHtml(h.date)}</span>${escHtml(h.text)}
+    </div>`;
+  }).join('');
+}
+
+function showNewHistoryInput() {
+  const row = document.getElementById('new-history-row');
+  const inp = document.getElementById('new-history-input');
+  if (!row || !inp) return;
+  row.style.display = 'flex';
+  inp.value = '';
+  inp.focus();
+  // Scroll to bottom of modal so input is visible
+  row.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function confirmHistoryEntry() {
+  const inp = document.getElementById('new-history-input');
+  if (!inp) return;
+  const text = inp.value.trim();
+  if (!text) { inp.focus(); return; }
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('de-DE', {day:'2-digit', month:'2-digit', year:'numeric'});
+  pendingHistory.push({ date: dateStr, text: text });
+  inp.value = '';
+  const _nhr = document.getElementById('new-history-row'); if (_nhr) _nhr.style.display = 'none';
+  renderModalHistory();
+}
 
 /* ─── EXPORT ─────────────────────────────────────────── */
 async function exportJSON() {
