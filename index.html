@@ -107,8 +107,8 @@
   .task-link{display:inline-flex;align-items:center;gap:3px;font-size:10px;color:#5a99d4;text-decoration:underline;text-underline-offset:2px;word-break:break-all;cursor:pointer;transition:color 0.1s;}
   .task-link:hover{color:#7ab8e8;}
   .task-owner-avatar{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;flex-shrink:0;color:#0f0e0c;}
-  .owner-j{background:#c8a96e;} /* Jürgen  - gold    */
-  .owner-w{background:#5a82b4;} /* Wolfgang- blue    */
+  .owner-j{background:#c8a96e;} /* Jogi    - gold    */
+  .owner-w{background:#5a82b4;} /* Wolfi   - blue    */
   .owner-r{background:#9a78d0;} /* Roman   - purple  */
   .owner-m{background:#4aaa72;} /* Marc    - green   */
 
@@ -312,8 +312,9 @@
   <!-- 1. Personen -->
   <select class="filter-select" id="f-owner" onchange="applyFilters()" title="Verantwortlich">
     <option value="">👤 Alle Personen</option>
-    <option value="Jürgen">Jürgen</option>
-    <option value="Wolfgang">Wolfgang</option>
+    <option value="Jogi">Jogi</option>
+    <option value="Wolfi">Wolfi</option>
+    <option value="Jogi / Wolfi">Jogi / Wolfi</option>
     <option value="Roman">Roman</option>
     <option value="Marc">Marc</option>
   </select>
@@ -573,8 +574,9 @@
         <label class="form-label">Verantwortlich</label>
         <select class="form-select" id="field-owner">
           <option value="">— Niemand —</option>
-          <option value="Jürgen">Jürgen</option>
-          <option value="Wolfgang">Wolfgang</option>
+          <option value="Jogi">Jogi</option>
+          <option value="Wolfi">Wolfi</option>
+          <option value="Jogi / Wolfi">Jogi / Wolfi</option>
           <option value="Roman">Roman</option>
           <option value="Marc">Marc</option>
         </select>
@@ -588,6 +590,9 @@
           <option value="Konstruktion">Konstruktion</option>
           <option value="Montage">Montage</option>
           <option value="Vertrieb">Vertrieb</option>
+          <option value="Homepage">Homepage</option>
+          <option value="Marketing">Marketing</option>
+          <option value="Einkauf">Einkauf</option>
           <option value="Allgemein">Allgemein</option>
         </select>
       </div>
@@ -1632,7 +1637,7 @@ function priorityLabel(p) {
   return {low:'Niedrig', medium:'Mittel', high:'Hoch', urgent:'Dringend'}[p] || p;
 }
 function ownerClass(name) {
-  return {Jürgen:'owner-j', Wolfgang:'owner-w', Roman:'owner-r', Marc:'owner-m'}[name] || 'owner-j';
+  return {'Jogi':'owner-j', 'Wolfi':'owner-w', 'Jogi / Wolfi':'owner-j', 'Roman':'owner-r', 'Marc':'owner-m'}[name] || 'owner-j';
 }
 function kundeClass(name) {
   return {'Anfrage':'kunde-anfrage','Auftrag erhalten':'kunde-auftrag','Absage':'kunde-absage','Reklamation':'kunde-reklamation'}[name] || 'kunde-anfrage';
