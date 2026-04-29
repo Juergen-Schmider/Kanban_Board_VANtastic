@@ -76,7 +76,19 @@
   .task-title{font-size:12px;font-weight:500;color:var(--text);line-height:1.4;flex:1;}
   .task-menu{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:15px;line-height:1;padding:0 2px;border-radius:4px;transition:color 0.1s;flex-shrink:0;}
   .task-menu:hover{color:var(--text-muted);}
-  .task-desc{font-size:11px;color:var(--text-muted);line-height:1.4;margin-bottom:7px;}
+  .task-desc{
+    font-size:11px;color:var(--text-muted);line-height:1.4;margin-bottom:7px;
+    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;
+    overflow:hidden;
+    transition:max-height 0.25s ease, -webkit-line-clamp 0s;
+    max-height:calc(1.4em * 3);
+  }
+  .task-card:hover .task-desc{
+    display:block;
+    overflow:visible;
+    max-height:500px;
+    -webkit-line-clamp:unset;
+  }
   .task-meta{display:flex;align-items:center;justify-content:space-between;gap:5px;margin-top:7px;}
 
   .priority-badge{font-size:9px;font-weight:500;letter-spacing:0.05em;text-transform:uppercase;padding:2px 5px;border-radius:4px;display:inline-flex;align-items:center;gap:3px;}
